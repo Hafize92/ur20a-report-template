@@ -1,0 +1,17 @@
+{
+  "name": "ur20a-report-template",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static shared-link UR20A sewerage engineering report template with independent browser records and printable A4 output.",
+  "scripts": {
+    "start": "node scripts/server.mjs",
+    "serve": "node scripts/server.mjs",
+    "test": "node --test --test-isolation=none",
+    "build": "node scripts/build-site.mjs",
+    "verify": "npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

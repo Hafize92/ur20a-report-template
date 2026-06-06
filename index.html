@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123f49">
     <title>UR20A Report Template | Printable A4 Report Builder</title>
-    <link rel="stylesheet" href="./src/styles.css">
+    <link rel="stylesheet" href="./src/styles.css?v=1.0.1">
   </head>
   <body>
     <header class="app-header screen-only">
@@ -14,7 +14,7 @@
           <p class="kicker">Shared web report application</p>
           <h1>UR20A <span>Report Template</span></h1>
         </div>
-        <p class="template-credit screen-only">Hafize | Version 1.0.0</p>
+        <p class="template-credit screen-only">Hafize | Version 1.0.1</p>
       </div>
       <div class="header-summary">
         <p>
@@ -48,7 +48,7 @@
           </p>
           <label>
             New project copy name
-            <input id="projectCopyName" placeholder="e.g. Sekolah A - UR20A">
+            <input id="projectCopyName" placeholder="e.g. SMK Tengku Ampuan Intan">
           </label>
           <button class="row-action" id="saveProjectCopy" type="button">Save as new project</button>
           <label>
@@ -77,16 +77,8 @@
                 <input data-field="control.documentReference" placeholder="e.g. IWK/001">
               </label>
               <label>
-                Revision
-                <input data-field="control.revision" placeholder="e.g. Rev. 0">
-              </label>
-              <label>
                 Submission ke-
                 <input data-field="control.submissionNumber" type="number" min="1" step="1" placeholder="e.g. 1">
-              </label>
-              <label>
-                Status
-                <input data-field="control.status" placeholder="Draf untuk semakan">
               </label>
             </div>
             <label>
@@ -122,12 +114,12 @@
             <div class="input-grid">
               <label>
                 Certifying engineer
-                <input data-field="cover.certifierName" list="history-certifierName" placeholder="Nama">
+                <input data-field="cover.certifierName" list="history-certifierName" placeholder="Ir. Dr. ZURAIDA BINTI ZAINI RIJAL">
                 <datalist id="history-certifierName"></datalist>
               </label>
               <label>
                 Registration number
-                <input data-field="cover.certifierRegistration" list="history-certifierRegistration" placeholder="No. Pendaftaran">
+                <input data-field="cover.certifierRegistration" list="history-certifierRegistration" placeholder="CF11003">
                 <datalist id="history-certifierRegistration"></datalist>
               </label>
             </div>
@@ -292,8 +284,8 @@
           <details open>
             <summary>8.0 Formula hidraulik dan output kiraan</summary>
             <p class="field-note">
-              MSIG Volume III working reference identifies three permitted formula options.
-              Select each formula that must have a detail sheet in the PDF.
+              Select a formula from the dropdown and it will be added automatically.
+              Use Remove if a selected formula is no longer required.
             </p>
             <label>
               Detailed hydraulic calculation output
@@ -306,21 +298,13 @@
             <label>
               Formula to include
               <select id="hydraulicFormulaChoice">
+                <option value="">Select formula</option>
                 <option value="colebrook">Colebrook-White</option>
                 <option value="hazen-williams">Hazen-Williams</option>
                 <option value="manning">Manning</option>
               </select>
             </label>
-            <button class="row-action" id="addHydraulicFormula" type="button">Add selected formula</button>
             <div id="selectedHydraulicFormulas" class="selected-methods"></div>
-            <label>
-              Output file / appendix reference
-              <input data-hydraulic-field="sourceReference" placeholder="e.g. Lampiran B or calculation file reference">
-            </label>
-            <label>
-              Hydraulic notes
-              <textarea data-hydraulic-field="notes" rows="3" placeholder="Additional design confirmation or output note."></textarea>
-            </label>
           </details>
 
           <details open>
@@ -343,7 +327,7 @@
       </section>
     </main>
 
-    <script src="./src/report-model.js"></script>
-    <script src="./src/app.js"></script>
+    <script src="./src/report-model.js?v=1.0.1"></script>
+    <script src="./src/app.js?v=1.0.1"></script>
   </body>
 </html>

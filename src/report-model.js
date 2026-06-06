@@ -2,7 +2,7 @@
 const APP_META = Object.freeze({
   appName: "UR20A Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.0",
+  credit: "Hafize | Version 1.0.1",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
@@ -39,9 +39,9 @@ const defaultContentsSections = REPORT_SECTIONS.map(([number, title]) => ({
 }));
 
 const defaultCriteria = [
-  ["Aliran purata air harian per kapita", "", "liter/hari"],
-  ["Halaju aliran minimum", "", "m/s"],
-  ["Halaju aliran maksimum", "", "m/s"],
+  ["Aliran purata air harian per kapita", "210", "liter/hari"],
+  ["Halaju aliran minimum", "0.8", "m/s"],
+  ["Halaju aliran maksimum", "4.0", "m/s"],
   ["Jarak lurang maksimum", "", "m"],
   ["Jenis dan diameter paip", "", ""]
 ];
@@ -136,9 +136,7 @@ function createBlankRecord() {
     control: {
       reportDate: "",
       documentReference: "",
-      revision: "",
-      submissionNumber: "",
-      status: "Draf untuk semakan"
+      submissionNumber: ""
     },
     cover: {
       projectTitle: "",
@@ -147,7 +145,7 @@ function createBlankRecord() {
       reportCode: "UR20A",
       certificationStatement:
         "SAYA DENGAN INI MENGESAHKAN BAHAWA REKABENTUK INI TELAH DILAKSANAKAN MENGIKUT AMALAN KEJURUTERAAN TERBAIK DAN SAYA MENGAMBIL SEPENUHNYA TANGGUNGJAWAB KE ATAS REKABENTUK TERSEBUT DAN PELAKSANAAN YANG TERATUR.",
-      certifierName: "",
+      certifierName: "Ir. Dr. ZURAIDA BINTI ZAINI RIJAL",
       certifierRegistration: "",
       certifierRole: "",
       projectOwner: "",
@@ -180,9 +178,7 @@ function createBlankRecord() {
     contentsSections: defaultContentsSections.map((section) => ({ ...section })),
     hydraulic: {
       calculationSource: "",
-      formulaIds: [],
-      sourceReference: "",
-      notes: ""
+      formulaIds: []
     },
     appendices: defaultAppendices.map(([letter, title, reference]) => ({
       letter,
@@ -287,9 +283,7 @@ function normaliseRecord(value) {
       calculationSource: ["excel", "mits"].includes(text(hydraulic.calculationSource))
         ? text(hydraulic.calculationSource)
         : "",
-      formulaIds: validFormulaIds,
-      sourceReference: text(hydraulic.sourceReference),
-      notes: text(hydraulic.notes)
+      formulaIds: validFormulaIds
     },
     appendices: normaliseRows(incoming.appendices, defaults.appendices, [
       "letter",

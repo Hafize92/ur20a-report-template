@@ -30,6 +30,8 @@ const HYDRAULIC_SOURCE_LABELS = Object.freeze({
   mits: "Computer software (MiTS)"
 });
 
+const REGISTRATION_PREFIX = "No. Pendaftaran LJM :";
+
 const STANDARD_CRITERIA_BASIS =
   "Reka bentuk sistem pembetungan adalah berdasarkan kepada garis panduan Code of Practice for Design and Installation of Sewerage System: MS 1228: 1991 dan Malaysian Sewerage Industry Guidelines (MSIG) terbitan Suruhanjaya Perkhidmatan Air Negara (SPAN).";
 
@@ -154,13 +156,30 @@ function activeProject() {
   return projectLibrary.find((project) => project.id === activeProjectId);
 }
 
+function stripReportCodeSuffix(value) {
+  return REPORT_CODE_OPTIONS.reduce((base, code) => {
+    const suffix = ` - ${code}`;
+    return base.toLowerCase().endsWith(suffix.toLowerCase())
+      ? base.slice(0, -suffix.length).trim()
+      : base;
+  }, value.trim());
+}
+
+function projectCopyNameWithReportCode(value) {
+  const base = stripReportCodeSuffix(value || "");
+  const reportCode = record.cover.reportCode.trim();
+  return base && reportCode ? `${base} - ${reportCode}` : base;
+}
+
 function projectCopyFileStem() {
   const project = activeProject();
   return safeFileStem(
-    projectCopyName.value.trim() ||
-      (project ? project.name : "") ||
-      record.cover.projectTitle.trim() ||
-      "record"
+    projectCopyNameWithReportCode(
+      projectCopyName.value.trim() ||
+        (project ? project.name : "") ||
+        record.cover.projectTitle.trim() ||
+        "record"
+    )
   );
 }
 
@@ -213,6 +232,16 @@ function displayValue(tag, value, placeholder, className = "") {
     output.classList.add("pending-value");
   }
   return output;
+}
+
+function certifierRegistrationText() {
+  const registration = record.cover.certifierRegistration.trim();
+  if (!registration) {
+    return "";
+  }
+  return /^No\.?\s*Pendaftaran\s+LJM\s*:/i.test(registration)
+    ? registration
+    : `${REGISTRATION_PREFIX} ${registration}`;
 }
 
 function paragraphValue(parent, value, placeholder) {
@@ -582,7 +611,7 @@ function renderCover() {
   const certifier = node("div", "certifier");
   certifier.append(
     displayValue("strong", record.cover.certifierName, "Nama jurutera pengesah"),
-    displayValue("div", record.cover.certifierRegistration, "No. pendaftaran"),
+    displayValue("div", certifierRegistrationText(), `${REGISTRATION_PREFIX} [nombor]`),
     displayValue("div", record.cover.certifierRole, "Jawatan / pejabat")
   );
   certification.append(certifier);
@@ -590,9 +619,6 @@ function renderCover() {
 
   const coverControl = node("div", "cover-control");
   coverControl.append(displayValue("p", record.control.reportDate, "Tarikh laporan", "cover-date"));
-  if (filled(record.control.revision)) {
-    coverControl.append(node("p", "cover-revision", `REVISION: ${record.control.revision}`));
-  }
   page.append(coverControl);
   return page;
 }
@@ -801,13 +827,6 @@ function renderHydraulic(body, config) {
   const section = createConfiguredSection(config, "8.0", "FORMULA HIDRAULIK");
   section.append(node("p", "hydraulic-source", hydraulicBasisSentence()));
 
-  if (filled(record.hydraulic.sourceReference)) {
-    section.append(node("p", "", `Rujukan output pengiraan: ${record.hydraulic.sourceReference}.`));
-  }
-  if (filled(record.hydraulic.notes)) {
-    paragraphValue(section, record.hydraulic.notes, "Masukkan nota hidraulik.");
-  }
-
   const formulaNames = record.hydraulic.formulaIds.map((id) => HYDRAULIC_FORMULAS[id].label);
   const formulaStatement = node("p");
   if (formulaNames.length) {
@@ -942,9 +961,6 @@ function renderFormulaDetail(formula) {
   detail.append(node("h4", "", "Basis and application"));
   detail.append(node("p", "", formula.basis), node("p", "", formula.coefficient));
   detail.append(node("p", "", hydraulicSourceSentence()));
-  if (filled(record.hydraulic.sourceReference)) {
-    detail.append(node("p", "", `Calculation output reference: ${record.hydraulic.sourceReference}.`));
-  }
   return detail;
 }
 
@@ -1119,13 +1135,20 @@ contentsSectionsEditor.addEventListener("click", (event) => {
   saveAndRender("Report section removed");
 });
 
-document.querySelector("#addHydraulicFormula").addEventListener("click", () => {
+formulaChoice.addEventListener("change", () => {
   const formulaId = formulaChoice.value;
+  if (!formulaId || !HYDRAULIC_FORMULAS[formulaId]) {
+    formulaChoice.value = "";
+    return;
+  }
   if (!record.hydraulic.formulaIds.includes(formulaId)) {
     record.hydraulic.formulaIds.push(formulaId);
     renderSelectedFormulas();
     saveAndRender("Formula added");
+  } else {
+    noteSaved("Formula already selected");
   }
+  formulaChoice.value = "";
 });
 
 formulaSelection.addEventListener("click", (event) => {
@@ -1152,7 +1175,9 @@ document.querySelector("#newRecord").addEventListener("click", () => {
 });
 
 document.querySelector("#saveProjectCopy").addEventListener("click", () => {
-  const name = projectCopyName.value.trim() || record.cover.projectTitle.trim();
+  const name = projectCopyNameWithReportCode(
+    projectCopyName.value.trim() || record.cover.projectTitle.trim()
+  );
   if (!name) {
     window.alert("Insert a project copy name or Project title before saving a project copy.");
     return;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123f49">
     <title>UR20A Report Template | Printable A4 Report Builder</title>
-    <link rel="stylesheet" href="./src/styles.css?v=1.0.1">
+    <link rel="stylesheet" href="./src/styles.css?v=1.0.2">
   </head>
   <body>
     <header class="app-header screen-only">
@@ -14,7 +14,7 @@
           <p class="kicker">Shared web report application</p>
           <h1>UR20A <span>Report Template</span></h1>
         </div>
-        <p class="template-credit screen-only">Hafize | Version 1.0.1</p>
+        <p class="template-credit screen-only">Hafize | Version 1.0.2</p>
       </div>
       <div class="header-summary">
         <p>
@@ -200,8 +200,47 @@
             <summary>Report narrative</summary>
             <p class="field-note generated-note">
               <strong>1.0 Pengenalan</strong> is generated automatically using Project title
-              and Client / tetuan in the required standard sentence.
+              and Client / tetuan in the required standard sentence. Select the site sentence
+              type below and fill the controlled project location details.
             </p>
+            <label>
+              1.0 Site sentence type
+              <select data-site-field="introductionType">
+                <option value="new-school">Sekolah baharu / tapak baharu</option>
+                <option value="additional-block">Tambahan blok dalam sekolah sedia ada</option>
+                <option value="none">Do not include standard site sentence</option>
+              </select>
+            </label>
+            <div id="siteIntroductionFields" class="input-grid">
+              <label>
+                Lot / parcel
+                <input data-site-field="lotNumber" placeholder="e.g. Lot PT20411">
+              </label>
+              <label>
+                Daerah
+                <input data-site-field="district" placeholder="e.g. Melaka Tengah">
+              </label>
+              <label>
+                Mukim
+                <input data-site-field="mukim" placeholder="e.g. Tanjung Minyak">
+              </label>
+              <label>
+                Negeri
+                <input data-site-field="state" placeholder="e.g. Melaka">
+              </label>
+              <label>
+                Keluasan lot
+                <input data-site-field="lotArea" placeholder="e.g. 78,000m2">
+              </label>
+              <label id="existingSchoolIntroField">
+                Nama sekolah sedia ada
+                <input data-site-field="existingSchoolName" placeholder="e.g. SMK Tengku Ampuan Intan">
+              </label>
+            </div>
+            <label>
+              1.0 Additional introduction sentence(s)
+              <textarea data-field="narrative.introductionAdditional" rows="3" placeholder="Ayat tambahan untuk Pengenalan, jika perlu."></textarea>
+            </label>
             <label>
               2.0 Objektif
               <textarea data-field="narrative.objective" rows="4" placeholder="Tujuan laporan atau permohonan kelulusan."></textarea>
@@ -284,8 +323,7 @@
           <details open>
             <summary>8.0 Formula hidraulik dan output kiraan</summary>
             <p class="field-note">
-              Select a formula from the dropdown and it will be added automatically.
-              Use Remove if a selected formula is no longer required.
+              Select one formula only. Changing the dropdown will replace the previous formula.
             </p>
             <label>
               Detailed hydraulic calculation output
@@ -327,7 +365,7 @@
       </section>
     </main>
 
-    <script src="./src/report-model.js?v=1.0.1"></script>
-    <script src="./src/app.js?v=1.0.1"></script>
+    <script src="./src/report-model.js?v=1.0.2"></script>
+    <script src="./src/app.js?v=1.0.2"></script>
   </body>
 </html>

@@ -24,6 +24,8 @@ const savedProjectCopies = document.querySelector("#savedProjectCopies");
 const activeProjectCopy = document.querySelector("#activeProjectCopy");
 const contentsSectionsEditor = document.querySelector("#contentsSectionsEditor");
 const iwkReferenceField = document.querySelector("#iwkReferenceField");
+const siteIntroductionFields = document.querySelector("#siteIntroductionFields");
+const existingSchoolIntroField = document.querySelector("#existingSchoolIntroField");
 
 const HYDRAULIC_SOURCE_LABELS = Object.freeze({
   excel: "Excel sheet formula",
@@ -443,20 +445,18 @@ function renderHistoryChoices() {
 
 function renderSelectedFormulas() {
   formulaSelection.replaceChildren();
-  if (!record.hydraulic.formulaIds.length) {
+  if (!record.hydraulic.formulaId) {
     formulaSelection.append(node("p", "field-note", "No hydraulic formula has been selected."));
     return;
   }
-  record.hydraulic.formulaIds.forEach((id) => {
-    const formula = HYDRAULIC_FORMULAS[id];
-    const item = node("div", "selected-method");
-    item.append(node("strong", "", formula.label), node("span", "", formula.equation));
-    const remove = node("button", "row-remove", "Remove");
-    remove.type = "button";
-    remove.dataset.removeFormula = id;
-    item.append(remove);
-    formulaSelection.append(item);
-  });
+  const formula = HYDRAULIC_FORMULAS[record.hydraulic.formulaId];
+  const item = node("div", "selected-method");
+  item.append(node("strong", "", formula.label), node("span", "", formula.equation));
+  const remove = node("button", "row-remove", "Remove");
+  remove.type = "button";
+  remove.dataset.removeFormula = formula.id;
+  item.append(remove);
+  formulaSelection.append(item);
 }
 
 function syncIwkReferenceField() {
@@ -468,6 +468,22 @@ function syncIwkReferenceField() {
   }
   input.disabled = disabled;
   input.placeholder = disabled ? "Not applicable for UR20A" : "e.g. IWK/001";
+}
+
+function syncSiteFields() {
+  const existingSystemField = document.querySelector("#existingSystemNarrativeField");
+  existingSystemField.hidden = record.site.existingSystemStatus === "new";
+  existingSystemField.querySelector("textarea").disabled =
+    record.site.existingSystemStatus === "new";
+
+  const includeSiteSentence = record.site.introductionType !== "none";
+  siteIntroductionFields.hidden = !includeSiteSentence;
+  siteIntroductionFields.querySelectorAll("input").forEach((input) => {
+    input.disabled = !includeSiteSentence;
+  });
+  existingSchoolIntroField.hidden = record.site.introductionType !== "additional-block";
+  existingSchoolIntroField.querySelector("input").disabled =
+    !includeSiteSentence || record.site.introductionType !== "additional-block";
 }
 
 function populateFields() {
@@ -487,10 +503,8 @@ function populateFields() {
     input.value = record.design[input.dataset.designField] || "";
   });
   syncIwkReferenceField();
-  const existingSystemField = document.querySelector("#existingSystemNarrativeField");
-  existingSystemField.hidden = record.site.existingSystemStatus === "new";
-  existingSystemField.querySelector("textarea").disabled =
-    record.site.existingSystemStatus === "new";
+  syncSiteFields();
+  formulaChoice.value = record.hydraulic.formulaId || "";
   renderHistoryChoices();
   renderCardEditors();
   renderContentsSectionsEditor();
@@ -720,6 +734,14 @@ function mathFraction(numerator, denominator) {
   return fraction;
 }
 
+function mathRoot(...parts) {
+  const root = node("span", "math-root");
+  const radicand = node("span", "math-radicand");
+  radicand.append(...parts);
+  root.append(node("span", "math-root-symbol", "√"), radicand);
+  return root;
+}
+
 function mathRow(...parts) {
   const row = node("div", "math-row");
   row.append(...parts);
@@ -813,7 +835,7 @@ function hydraulicSourceSentence() {
   if (!record.hydraulic.calculationSource) {
     return "[Pilih output pengiraan hidraulik: Excel sheet formula atau perisian komputer (MiTS).]";
   }
-  return `Detailed hydraulic calculations are provided using ${HYDRAULIC_SOURCE_LABELS[record.hydraulic.calculationSource]}.`;
+  return `Perincian kiraan hidraulik disediakan menggunakan ${HYDRAULIC_SOURCE_LABELS[record.hydraulic.calculationSource]}.`;
 }
 
 function hydraulicBasisSentence() {
@@ -827,22 +849,20 @@ function renderHydraulic(body, config) {
   const section = createConfiguredSection(config, "8.0", "FORMULA HIDRAULIK");
   section.append(node("p", "hydraulic-source", hydraulicBasisSentence()));
 
-  const formulaNames = record.hydraulic.formulaIds.map((id) => HYDRAULIC_FORMULAS[id].label);
+  const formula = HYDRAULIC_FORMULAS[record.hydraulic.formulaId];
   const formulaStatement = node("p");
-  if (formulaNames.length) {
+  if (formula) {
     formulaStatement.textContent =
-      `Reka bentuk pembetungan projek ini menggunakan formula ${formulaNames.join(
-        ", "
-      )} seperti di bawah.`;
+      `Reka bentuk pembetungan projek ini menggunakan formula ${formula.label} seperti di bawah.`;
   } else {
     formulaStatement.className = "pending-value";
-    formulaStatement.textContent = "[Pilih sekurang-kurangnya satu formula hidraulik.]";
+    formulaStatement.textContent = "[Pilih satu formula hidraulik.]";
   }
   section.append(formulaStatement);
   body.append(section);
-  record.hydraulic.formulaIds.forEach((id) => {
-    body.append(renderFormulaDetail(HYDRAULIC_FORMULAS[id]));
-  });
+  if (formula) {
+    body.append(renderFormulaDetail(formula));
+  }
 }
 
 function renderAppendixSummary(body, config) {
@@ -862,6 +882,49 @@ function renderAppendixSummary(body, config) {
   body.append(section);
 }
 
+function siteValue(value, placeholder) {
+  return displayValue("span", value, placeholder);
+}
+
+function renderSiteIntroductionSentence(parent) {
+  if (record.site.introductionType === "none") {
+    return;
+  }
+  const paragraph = node("p");
+  if (record.site.introductionType === "additional-block") {
+    paragraph.append(
+      "Tapak cadangan projek ini terletak di atas sebahagian ",
+      siteValue(record.site.lotNumber, "Lot"),
+      ", Daerah ",
+      siteValue(record.site.district, "Daerah"),
+      ", Mukim ",
+      siteValue(record.site.mukim, "Mukim"),
+      ", ",
+      siteValue(record.site.state, "Negeri"),
+      " di dalam kawasan ",
+      siteValue(record.site.existingSchoolName, "Nama sekolah"),
+      " sedia ada dengan keluasan lot ialah ",
+      siteValue(record.site.lotArea, "Keluasan lot"),
+      "."
+    );
+  } else {
+    paragraph.append(
+      "Tapak cadangan projek ini terletak di atas ",
+      siteValue(record.site.lotNumber, "Lot"),
+      ", Daerah ",
+      siteValue(record.site.district, "Daerah"),
+      ", Mukim ",
+      siteValue(record.site.mukim, "Mukim"),
+      ", ",
+      siteValue(record.site.state, "Negeri"),
+      " dengan keluasan lot ialah ",
+      siteValue(record.site.lotArea, "Keluasan lot"),
+      "."
+    );
+  }
+  parent.append(paragraph);
+}
+
 function renderIntroduction(body, config) {
   const introduction = createConfiguredSection(config, "1.0", "PENGENALAN");
   const projectTitle = record.cover.projectTitle.trim() || "[Project Title]";
@@ -875,6 +938,10 @@ function renderIntroduction(body, config) {
     "."
   );
   introduction.append(paragraph);
+  renderSiteIntroductionSentence(introduction);
+  if (filled(record.narrative.introductionAdditional)) {
+    paragraphValue(introduction, record.narrative.introductionAdditional, "Masukkan ayat tambahan.");
+  }
   body.append(introduction);
 }
 
@@ -958,7 +1025,7 @@ function renderFormulaDetail(formula) {
     variables.append(definition);
   });
   detail.append(variables);
-  detail.append(node("h4", "", "Basis and application"));
+  detail.append(node("h4", "", "Asas dan aplikasi"));
   detail.append(node("p", "", formula.basis), node("p", "", formula.coefficient));
   detail.append(node("p", "", hydraulicSourceSentence()));
   return detail;
@@ -980,14 +1047,15 @@ function renderFormulaEquation(formula) {
     );
   } else {
     expression.append(
-      mathRow("V = -2 sqrt(2 g D S)"),
       mathRow(
-        "x log",
+        "V = -2",
+        mathRoot("2 g D S"),
+        " log",
         node("sub", "", "10"),
         " [ ",
         mathFraction(mathGroup("k", node("sub", "", "s")), "3.7 D"),
         " + ",
-        mathFraction("2.51 nu", "D sqrt(2 g D S)"),
+        mathFraction("2.51 ν", mathGroup("D ", mathRoot("2 g D S"))),
         " ]"
       )
     );
@@ -1052,7 +1120,7 @@ editor.addEventListener("input", (event) => {
     record.hydraulic[target.dataset.hydraulicField] = target.value;
   } else if (target.dataset.siteField) {
     record.site[target.dataset.siteField] = target.value;
-    populateFields();
+    syncSiteFields();
   } else if (target.dataset.designField) {
     record.design[target.dataset.designField] = target.value;
   } else if (target.dataset.array) {
@@ -1138,17 +1206,15 @@ contentsSectionsEditor.addEventListener("click", (event) => {
 formulaChoice.addEventListener("change", () => {
   const formulaId = formulaChoice.value;
   if (!formulaId || !HYDRAULIC_FORMULAS[formulaId]) {
+    record.hydraulic.formulaId = "";
     formulaChoice.value = "";
+    renderSelectedFormulas();
+    saveAndRender("Formula cleared");
     return;
   }
-  if (!record.hydraulic.formulaIds.includes(formulaId)) {
-    record.hydraulic.formulaIds.push(formulaId);
-    renderSelectedFormulas();
-    saveAndRender("Formula added");
-  } else {
-    noteSaved("Formula already selected");
-  }
-  formulaChoice.value = "";
+  record.hydraulic.formulaId = formulaId;
+  renderSelectedFormulas();
+  saveAndRender("Formula selected");
 });
 
 formulaSelection.addEventListener("click", (event) => {
@@ -1156,9 +1222,10 @@ formulaSelection.addEventListener("click", (event) => {
   if (!remove) {
     return;
   }
-  record.hydraulic.formulaIds = record.hydraulic.formulaIds.filter(
-    (id) => id !== remove.dataset.removeFormula
-  );
+  if (record.hydraulic.formulaId === remove.dataset.removeFormula) {
+    record.hydraulic.formulaId = "";
+  }
+  formulaChoice.value = record.hydraulic.formulaId || "";
   renderSelectedFormulas();
   saveAndRender("Formula removed");
 });

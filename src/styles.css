@@ -483,10 +483,7 @@ select:focus {
   position: absolute;
   right: 13mm;
   bottom: 12mm;
-  padding: 2mm 3mm;
-  border-radius: 2mm;
   color: #687174;
-  background: #eef0f0;
   text-align: right;
 }
 
@@ -735,6 +732,24 @@ select:focus {
 
 .math-numerator {
   border-bottom: 1px solid currentColor;
+}
+
+.math-root {
+  display: inline-flex;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.math-root-symbol {
+  padding-right: 0.3mm;
+  font-size: 1.22em;
+  line-height: 1;
+}
+
+.math-radicand {
+  padding: 0 0.9mm 0 0.6mm;
+  border-top: 1px solid currentColor;
+  line-height: 1.24;
 }
 
 .math-result {

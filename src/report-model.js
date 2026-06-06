@@ -2,7 +2,7 @@
 const APP_META = Object.freeze({
   appName: "UR20A Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.1",
+  credit: "Hafize | Version 1.0.2",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
@@ -57,19 +57,19 @@ const HYDRAULIC_FORMULAS = Object.freeze({
     id: "colebrook",
     label: "Colebrook-White",
     equation:
-      "V = -2 sqrt(2 g D S) log10 [ ks / (3.7 D) + 2.51 nu / (D sqrt(2 g D S)) ]",
+      "V = -2 √(2 g D S) log10 [ ks / (3.7 D) + 2.51 ν / (D √(2 g D S)) ]",
     variables: Object.freeze([
       ["V", "flow velocity (m/s)"],
       ["g", "gravitational acceleration (m/s2)"],
       ["D", "internal pipe diameter (m)"],
       ["S", "hydraulic gradient"],
       ["ks", "equivalent pipe roughness (m)"],
-      ["nu", "kinematic viscosity of fluid (m2/s)"]
+      ["ν", "kinematic viscosity of fluid (m2/s)"]
     ]),
     basis:
-      "MSIG Volume III states that the Colebrook-White equation is considered to provide the most accurate results.",
+      "MSIG Volume III menyatakan bahawa persamaan Colebrook-White dianggap memberikan keputusan yang paling tepat untuk reka bentuk hidraulik.",
     coefficient:
-      "The ks value shall be selected for the confirmed pipe material and condition used in the design."
+      "Nilai ks hendaklah dipilih berdasarkan bahan paip dan keadaan paip yang disahkan untuk reka bentuk."
   }),
   "hazen-williams": Object.freeze({
     id: "hazen-williams",
@@ -82,9 +82,9 @@ const HYDRAULIC_FORMULAS = Object.freeze({
       ["S", "hydraulic gradient"]
     ]),
     basis:
-      "MSIG Volume III permits Hazen-Williams as an alternative hydraulic equation that is simpler to apply.",
+      "MSIG Volume III membenarkan persamaan Hazen-Williams sebagai formula hidraulik alternatif yang lebih mudah digunakan.",
     coefficient:
-      "The C value shall be selected for the confirmed pipe type; any typical value shall be checked before submission."
+      "Nilai C hendaklah dipilih berdasarkan jenis paip yang disahkan dan disemak sebelum penyerahan."
   }),
   manning: Object.freeze({
     id: "manning",
@@ -97,9 +97,9 @@ const HYDRAULIC_FORMULAS = Object.freeze({
       ["S", "hydraulic gradient"]
     ]),
     basis:
-      "MSIG Volume III permits Manning as an alternative hydraulic equation that is simpler to apply.",
+      "MSIG Volume III membenarkan persamaan Manning sebagai formula hidraulik alternatif yang lebih mudah digunakan.",
     coefficient:
-      "The n value shall be selected according to the confirmed pipe material and condition used in the design."
+      "Nilai n hendaklah dipilih berdasarkan bahan paip dan keadaan paip yang disahkan untuk reka bentuk."
   })
 });
 
@@ -159,6 +159,7 @@ function createBlankRecord() {
     },
     narrative: {
       introduction: "",
+      introductionAdditional: "",
       objective: "",
       criteriaBasis: "",
       existingSystem: "",
@@ -166,7 +167,14 @@ function createBlankRecord() {
       hydraulicBasis: ""
     },
     site: {
-      existingSystemStatus: "existing"
+      existingSystemStatus: "existing",
+      introductionType: "new-school",
+      lotNumber: "",
+      district: "",
+      mukim: "",
+      state: "",
+      lotArea: "",
+      existingSchoolName: ""
     },
     design: {
       peakFactorCoefficient: "3.4"
@@ -178,7 +186,7 @@ function createBlankRecord() {
     contentsSections: defaultContentsSections.map((section) => ({ ...section })),
     hydraulic: {
       calculationSource: "",
-      formulaIds: []
+      formulaId: ""
     },
     appendices: defaultAppendices.map(([letter, title, reference]) => ({
       letter,
@@ -241,9 +249,24 @@ function normaliseRecord(value) {
   if (normalisedCover.reportCode === "UR20A") {
     normalisedControl.documentReference = "";
   }
-  const validFormulaIds = Array.isArray(hydraulic.formulaIds)
-    ? [...new Set(hydraulic.formulaIds.map(text))].filter((id) => Boolean(HYDRAULIC_FORMULAS[id]))
-    : [];
+  const formulaCandidates = [
+    text(hydraulic.formulaId),
+    ...(Array.isArray(hydraulic.formulaIds) ? hydraulic.formulaIds.map(text) : [])
+  ];
+  const validFormulaId = formulaCandidates.find((id) => Boolean(HYDRAULIC_FORMULAS[id])) || "";
+  const normalisedSite = Object.fromEntries(
+    Object.keys(defaults.site).map((key) => [key, text(site[key] ?? defaults.site[key])])
+  );
+  normalisedSite.existingSystemStatus = ["existing", "new"].includes(
+    text(site.existingSystemStatus)
+  )
+    ? text(site.existingSystemStatus)
+    : defaults.site.existingSystemStatus;
+  normalisedSite.introductionType = ["new-school", "additional-block", "none"].includes(
+    text(site.introductionType)
+  )
+    ? text(site.introductionType)
+    : defaults.site.introductionType;
 
   return {
     control: normalisedControl,
@@ -257,11 +280,7 @@ function normaliseRecord(value) {
         text(narrative[key] ?? defaults.narrative[key])
       ])
     ),
-    site: {
-      existingSystemStatus: ["existing", "new"].includes(text(site.existingSystemStatus))
-        ? text(site.existingSystemStatus)
-        : defaults.site.existingSystemStatus
-    },
+    site: normalisedSite,
     design: {
       peakFactorCoefficient: text(
         design.peakFactorCoefficient ?? defaults.design.peakFactorCoefficient
@@ -283,7 +302,7 @@ function normaliseRecord(value) {
       calculationSource: ["excel", "mits"].includes(text(hydraulic.calculationSource))
         ? text(hydraulic.calculationSource)
         : "",
-      formulaIds: validFormulaIds
+      formulaId: validFormulaId
     },
     appendices: normaliseRows(incoming.appendices, defaults.appendices, [
       "letter",
@@ -396,7 +415,7 @@ function requiredFieldsMissing(value) {
     if (!record.hydraulic.calculationSource) {
       missing.push("Output pengiraan hidraulik");
     }
-    if (!record.hydraulic.formulaIds.length) {
+    if (!record.hydraulic.formulaId) {
       missing.push("Formula hidraulik");
     }
   }

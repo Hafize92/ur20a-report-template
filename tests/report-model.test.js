@@ -21,6 +21,9 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.criteria.length, 5);
   assert.equal(record.appendices.length, 3);
   assert.equal(record.site.existingSystemStatus, "existing");
+  assert.equal(record.site.introductionType, "new-school");
+  assert.equal(record.site.lotNumber, "");
+  assert.equal(record.narrative.introductionAdditional, "");
   assert.equal(record.design.peakFactorCoefficient, "3.4");
   assert.equal(record.cover.certifierName, "Ir. Dr. ZURAIDA BINTI ZAINI RIJAL");
   assert.equal(record.criteria[0].value, "210");
@@ -31,8 +34,8 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.length, 9);
   assert.equal(record.contentsSections.find((section) => section.id === "5.0").enabled, "yes");
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
-  assert.deepEqual(record.hydraulic.formulaIds, []);
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.1");
+  assert.equal(record.hydraulic.formulaId, "");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.2");
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -167,7 +170,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.1/);
+  assert.match(html, /Hafize \| Version 1\.0\.2/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -187,11 +190,11 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.1"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.1"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.2"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.2"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.1">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.2">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
 });
@@ -211,9 +214,12 @@ test("MSIG hydraulic choices are restricted to the three permitted formula optio
     }
   });
   assert.equal(imported.hydraulic.calculationSource, "mits");
-  assert.deepEqual(imported.hydraulic.formulaIds, ["manning", "colebrook"]);
+  assert.equal(imported.hydraulic.formulaId, "manning");
+  assert.equal("formulaIds" in imported.hydraulic, false);
   assert.equal("sourceReference" in imported.hydraulic, false);
   assert.equal("notes" in imported.hydraulic, false);
+  assert.match(HYDRAULIC_FORMULAS.colebrook.equation, /√\(2 g D S\)/);
+  assert.match(HYDRAULIC_FORMULAS.colebrook.basis, /MSIG Volume III menyatakan/);
 });
 
 test("revised form provides project-copy storage and hydraulic controls", async () => {
@@ -244,6 +250,13 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(html, /Hazen-Williams/);
   assert.match(html, /Manning/);
   assert.match(html, /Select formula/);
+  assert.match(html, /Select one formula only/);
+  assert.match(html, /data-site-field="introductionType"/);
+  assert.match(html, /data-site-field="lotNumber"/);
+  assert.match(html, /data-site-field="district"/);
+  assert.match(html, /data-site-field="mukim"/);
+  assert.match(html, /data-site-field="existingSchoolName"/);
+  assert.match(html, /data-field="narrative.introductionAdditional"/);
   assert.match(html, /Ir\. Dr\. ZURAIDA BINTI ZAINI RIJAL/);
   assert.match(html, /placeholder="CF11003"/);
   assert.match(html, /Logo pemilik projek/);
@@ -264,7 +277,13 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /REGISTRATION_PREFIX = "No\. Pendaftaran LJM :"/);
   assert.match(app, /projectCopyNameWithReportCode/);
   assert.match(app, /formulaChoice\.addEventListener\("change"/);
+  assert.match(app, /Tapak cadangan projek ini terletak di atas/);
+  assert.match(app, /sebahagian/);
+  assert.match(app, /Asas dan aplikasi/);
+  assert.match(app, /Perincian kiraan hidraulik disediakan menggunakan/);
   assert.equal(app.includes("Asas kerja: MSIG Volume III"), false);
+  assert.equal(app.includes("sqrt"), false);
+  assert.match(app, /mathRoot/);
   assert.match(app, /Reka bentuk pembetungan projek ini menggunakan formula/);
   assert.equal(
     app.includes("Perincian setiap formula disertakan sebagai helaian berasingan dalam PDF ini."),
@@ -279,7 +298,7 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.equal(app.includes("renderAppendixSummaryPage"), false);
   assert.match(app, /renderHydraulic\(body, config\);[\s\S]*?renderAppendixSummary\(body, config\);/);
   assert.equal(app.includes("renderFormulaPages"), false);
-  assert.match(app, /body\.append\(renderFormulaDetail\(HYDRAULIC_FORMULAS\[id\]\)\)/);
+  assert.match(app, /body\.append\(renderFormulaDetail\(formula\)\)/);
   assert.match(app, /mathFraction/);
   assert.match(app, /calculationStep/);
   assert.match(app, /node\("sup", "", "-0\.11"\)/);
@@ -291,6 +310,8 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(css, /\.appendix-line\s*\{[\s\S]*?grid-template-columns:\s*30mm 1fr/);
   assert.match(css, /\.formula-equation\s*\{[\s\S]*?justify-content:\s*center/);
   assert.match(css, /\.math-fraction\s*\{[\s\S]*?flex-direction:\s*column/);
+  assert.match(css, /\.math-root\s*\{/);
+  assert.equal(css.includes("background: #eef0f0"), false);
   assert.match(css, /\.certification p\s*\{[\s\S]*?color:\s*#426b8a/);
   assert.match(css, /\.signature-line\s*\{[\s\S]*?margin:\s*8mm auto 2\.5mm/);
   assert.match(css, /\.report-subtext-list\s*\{/);

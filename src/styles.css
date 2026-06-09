@@ -263,27 +263,6 @@ select:focus {
   color: var(--muted);
 }
 
-.logo-input-row {
-  display: flex;
-  align-items: end;
-  gap: 9px;
-  margin-top: 4px;
-}
-
-.logo-input-row label {
-  flex: 1;
-}
-
-.logo-input-row input {
-  padding: 7px;
-  font-size: 0.76rem;
-}
-
-.logo-input-row .row-action {
-  flex: none;
-  margin-bottom: 1px;
-}
-
 .field-note {
   margin-top: 12px;
   color: var(--muted);
@@ -602,19 +581,6 @@ select:focus {
   margin: 0 0 2mm;
   object-fit: contain;
   object-position: left center;
-}
-
-.logo-placeholder {
-  grid-area: logo;
-  display: block;
-  width: 44mm;
-  height: 25mm;
-  margin-bottom: 2mm;
-}
-
-.logo-placeholder {
-  padding-top: 8mm;
-  text-align: left;
 }
 
 .stakeholders p {

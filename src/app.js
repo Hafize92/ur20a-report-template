@@ -32,6 +32,12 @@ const HYDRAULIC_SOURCE_LABELS = Object.freeze({
   mits: "Computer software (MiTS)"
 });
 
+const HARDCODED_LOGOS = Object.freeze({
+  projectOwner: "./assets/pemilik.png",
+  projectManager: "./assets/jkr.png",
+  designTeam: "./assets/jkr.png"
+});
+
 const REGISTRATION_PREFIX = "No. Pendaftaran LJM :";
 
 const STANDARD_CRITERIA_BASIS =
@@ -565,14 +571,11 @@ function createConfiguredSection(config, number, title) {
 }
 
 function logoForParty(key, label) {
-  if (filled(record.logos[key])) {
-    const image = document.createElement("img");
-    image.className = "party-logo";
-    image.alt = `Logo ${label}`;
-    image.src = record.logos[key];
-    return image;
-  }
-  return node("div", "logo-placeholder pending-value", `[Logo ${label}]`);
+  const image = document.createElement("img");
+  image.className = "party-logo";
+  image.alt = `Logo ${label}`;
+  image.src = HARDCODED_LOGOS[key];
+  return image;
 }
 
 function renderCover() {
@@ -1089,24 +1092,6 @@ function renderReport() {
   );
 }
 
-async function storeLogo(key, file) {
-  if (!file) {
-    return;
-  }
-  if (file.size > 700000) {
-    window.alert("Please use a logo image smaller than 700 KB so the browser record remains portable.");
-    return;
-  }
-  const dataUrl = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(reader.result));
-    reader.addEventListener("error", reject);
-    reader.readAsDataURL(file);
-  });
-  record.logos[key] = dataUrl;
-  saveAndRender("Logo saved in this browser profile");
-}
-
 editor.addEventListener("input", (event) => {
   const target = event.target;
   if (target.dataset.field) {
@@ -1133,7 +1118,7 @@ editor.addEventListener("input", (event) => {
   saveAndRender();
 });
 
-editor.addEventListener("change", async (event) => {
+editor.addEventListener("change", (event) => {
   const target = event.target;
   if (target.dataset.field) {
     storeHistoryEntry(target.dataset.field, target.value);
@@ -1143,10 +1128,6 @@ editor.addEventListener("change", async (event) => {
     const field = editor.querySelector(`[data-field="${target.dataset.historyPick}"]`);
     field.value = target.value;
     saveAndRender("Saved entry applied");
-  }
-  if (target.dataset.logo) {
-    await storeLogo(target.dataset.logo, target.files[0]);
-    target.value = "";
   }
 });
 
@@ -1173,11 +1154,6 @@ editor.addEventListener("click", (event) => {
     renderPeEditor();
     saveAndRender();
     return;
-  }
-  const clearLogo = event.target.closest("[data-clear-logo]");
-  if (clearLogo) {
-    record.logos[clearLogo.dataset.clearLogo] = "";
-    saveAndRender("Logo cleared");
   }
 });
 

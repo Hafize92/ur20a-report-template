@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123f49">
     <title>UR20A Report Template | Printable A4 Report Builder</title>
-    <link rel="stylesheet" href="./src/styles.css?v=1.0.2">
+    <link rel="stylesheet" href="./src/styles.css?v=1.0.3">
   </head>
   <body>
     <header class="app-header screen-only">
@@ -14,7 +14,7 @@
           <p class="kicker">Shared web report application</p>
           <h1>UR20A <span>Report Template</span></h1>
         </div>
-        <p class="template-credit screen-only">Hafize | Version 1.0.2</p>
+        <p class="template-credit screen-only">Hafize | Version 1.0.3</p>
       </div>
       <div class="header-summary">
         <p>
@@ -143,13 +143,6 @@
               Pemilik projek
               <textarea data-field="cover.projectOwner" rows="4" placeholder="Nama dan alamat"></textarea>
             </label>
-            <div class="logo-input-row">
-              <label>
-                Logo pemilik projek
-                <input data-logo="projectOwner" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-              </label>
-              <button class="row-action" data-clear-logo="projectOwner" type="button">Clear logo</button>
-            </div>
             <label class="history-field">
               Previous pengurus projek
               <select data-history-pick="cover.projectManager">
@@ -160,13 +153,6 @@
               Pengurus projek
               <textarea data-field="cover.projectManager" rows="4" placeholder="Nama dan alamat"></textarea>
             </label>
-            <div class="logo-input-row">
-              <label>
-                Logo pengurus projek
-                <input data-logo="projectManager" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-              </label>
-              <button class="row-action" data-clear-logo="projectManager" type="button">Clear logo</button>
-            </div>
             <label class="history-field">
               Previous pasukan rekabentuk
               <select data-history-pick="cover.designTeam">
@@ -177,13 +163,6 @@
               Pasukan rekabentuk
               <textarea data-field="cover.designTeam" rows="4" placeholder="Nama dan alamat"></textarea>
             </label>
-            <div class="logo-input-row">
-              <label>
-                Logo pasukan rekabentuk
-                <input data-logo="designTeam" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-              </label>
-              <button class="row-action" data-clear-logo="designTeam" type="button">Clear logo</button>
-            </div>
           </details>
 
           <details open>
@@ -365,7 +344,7 @@
       </section>
     </main>
 
-    <script src="./src/report-model.js?v=1.0.2"></script>
-    <script src="./src/app.js?v=1.0.2"></script>
+    <script src="./src/report-model.js?v=1.0.3"></script>
+    <script src="./src/app.js?v=1.0.3"></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 {
   "name": "ur20a-report-template",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "description": "Static shared-link UR20A sewerage engineering report template with independent browser records and printable A4 output.",

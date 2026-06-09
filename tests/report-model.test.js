@@ -35,7 +35,7 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.find((section) => section.id === "5.0").enabled, "yes");
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.hydraulic.formulaId, "");
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.2");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.3");
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -170,7 +170,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.2/);
+  assert.match(html, /Hafize \| Version 1\.0\.3/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -190,11 +190,11 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.2"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.2"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.3"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.3"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.2">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.3">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
 });
@@ -226,6 +226,8 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const app = await readFile(new URL("../src/app.js", import.meta.url), "utf8");
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+  const pemilikLogo = await readFile(new URL("../assets/pemilik.png", import.meta.url));
+  const jkrLogo = await readFile(new URL("../assets/jkr.png", import.meta.url));
 
   assert.equal(html.includes("Hydraulic sewer schedule"), false);
   assert.equal(html.includes('data-field="narrative.introduction"'), false);
@@ -259,7 +261,13 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(html, /data-field="narrative.introductionAdditional"/);
   assert.match(html, /Ir\. Dr\. ZURAIDA BINTI ZAINI RIJAL/);
   assert.match(html, /placeholder="CF11003"/);
-  assert.match(html, /Logo pemilik projek/);
+  assert.equal(html.includes("Logo pemilik projek"), false);
+  assert.equal(html.includes("Logo pengurus projek"), false);
+  assert.equal(html.includes("Logo pasukan rekabentuk"), false);
+  assert.equal(html.includes("data-logo"), false);
+  assert.equal(html.includes("data-clear-logo"), false);
+  assert.ok(pemilikLogo.length > 1000);
+  assert.ok(jkrLogo.length > 1000);
   assert.match(html, /Saved project copies in this browser/);
   assert.match(html, /Multiple users can use the same web link/);
   assert.equal(html.includes("Inputs autosave only on this PC"), false);
@@ -275,6 +283,12 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /Kiraan Penduduk Setara \(PE\) menggunakan Table 3-1/);
   assert.match(app, /Rujuk lembaran lampiran kiraan yang disertakan secara/);
   assert.match(app, /REGISTRATION_PREFIX = "No\. Pendaftaran LJM :"/);
+  assert.match(app, /HARDCODED_LOGOS/);
+  assert.match(app, /projectOwner:\s*"\.\/assets\/pemilik\.png"/);
+  assert.match(app, /projectManager:\s*"\.\/assets\/jkr\.png"/);
+  assert.match(app, /designTeam:\s*"\.\/assets\/jkr\.png"/);
+  assert.equal(app.includes("FileReader"), false);
+  assert.equal(app.includes("storeLogo"), false);
   assert.match(app, /projectCopyNameWithReportCode/);
   assert.match(app, /formulaChoice\.addEventListener\("change"/);
   assert.match(app, /Tapak cadangan projek ini terletak di atas/);
@@ -316,6 +330,8 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(css, /\.signature-line\s*\{[\s\S]*?margin:\s*8mm auto 2\.5mm/);
   assert.match(css, /\.report-subtext-list\s*\{/);
   assert.match(css, /\.header-actions \.file-action\s*\{[\s\S]*?margin-top:\s*0/);
+  assert.equal(css.includes(".logo-input-row"), false);
+  assert.equal(css.includes(".logo-placeholder"), false);
   assert.equal(css.includes(".report-document::before"), false);
   assert.equal(css.includes("outline-offset: -7mm"), false);
 });

@@ -2,7 +2,7 @@
 const APP_META = Object.freeze({
   appName: "IWK Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.5",
+  credit: "Hafize | Version 1.0.6",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",

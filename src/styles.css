@@ -1025,7 +1025,7 @@ select:focus {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 17mm 18mm 16mm;
+    margin: 0;
   }
 
   .screen-only {
@@ -1052,11 +1052,11 @@ select:focus {
 
   .print-page {
     position: relative;
-    width: auto;
-    height: auto;
-    min-height: 263mm;
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
     margin: 0;
-    padding: 0;
+    padding: 18mm 19mm;
     overflow: hidden;
     outline: none;
     box-shadow: none;
@@ -1066,7 +1066,7 @@ select:focus {
   .contents-page,
   .body-page,
   .appendix-page {
-    min-height: 263mm;
+    min-height: 297mm;
     break-after: page;
     page-break-after: always;
   }
@@ -1082,7 +1082,6 @@ select:focus {
   .body-page {
     font-size: 10.5pt;
     line-height: 1.52;
-    padding-bottom: 9mm;
   }
 
   .body-page-draft {
@@ -1090,8 +1089,8 @@ select:focus {
   }
 
   .page-footer {
-    right: 0;
-    bottom: 0;
+    right: 19mm;
+    bottom: 8mm;
   }
 
   .report-section {

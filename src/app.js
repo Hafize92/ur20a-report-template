@@ -1154,7 +1154,7 @@ function updateContentsPageNumbers() {
 }
 
 function pageFooter(pageNumber) {
-  const footer = node("p", "page-footer", `Muka Surat ${pageNumber}`);
+  const footer = node("p", "page-footer", String(pageNumber));
   footer.dataset.pageFooter = String(pageNumber);
   return footer;
 }
@@ -1195,19 +1195,16 @@ function renumberBodyPages(pages) {
     page.dataset.pageNumber = String(pageNumber);
     const footer = page.querySelector(".page-footer");
     if (footer) {
-      footer.textContent = `Muka Surat ${pageNumber}`;
+      footer.textContent = String(pageNumber);
       footer.dataset.pageFooter = String(pageNumber);
     }
   });
 }
 
-function addFooterToAppendixPages(startNumber) {
-  let pageNumber = startNumber;
+function clearAppendixPageNumbers() {
   reportDocument.querySelectorAll(".appendix-page").forEach((page) => {
     page.querySelector(".page-footer")?.remove();
-    page.dataset.pageNumber = String(pageNumber);
-    page.append(pageFooter(pageNumber));
-    pageNumber += 1;
+    page.removeAttribute("data-page-number");
   });
 }
 
@@ -1240,14 +1237,25 @@ function paginateRenderedBody() {
 
   draft.remove();
   renumberBodyPages(pages);
-  addFooterToAppendixPages(pages.length + 1);
+  clearAppendixPageNumbers();
   updateContentsPageNumbers();
 }
 
-function scheduleBodyPagination() {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(paginateRenderedBody);
+function waitForAnimationFrame() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(resolve);
   });
+}
+
+let paginationReady = Promise.resolve();
+
+function scheduleBodyPagination() {
+  paginationReady = waitForAnimationFrame()
+    .then(waitForAnimationFrame)
+    .then(() => {
+      paginateRenderedBody();
+    });
+  return paginationReady;
 }
 
 function renderReport() {
@@ -1258,7 +1266,7 @@ function renderReport() {
     renderBody(),
     ...renderAppendixPages()
   );
-  scheduleBodyPagination();
+  return scheduleBodyPagination();
 }
 
 editor.addEventListener("input", (event) => {
@@ -1482,7 +1490,7 @@ document.querySelector("#importRecord").addEventListener("change", async (event)
   }
 });
 
-document.querySelector("#printReport").addEventListener("click", () => {
+document.querySelector("#printReport").addEventListener("click", async () => {
   const missing = requiredFieldsMissing(record);
   if (
     missing.length &&
@@ -1494,7 +1502,8 @@ document.querySelector("#printReport").addEventListener("click", () => {
   ) {
     return;
   }
-  renderReport();
+  await renderReport();
+  await paginationReady;
   const originalTitle = document.title;
   document.title = projectCopyFileStem();
   try {

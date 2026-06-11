@@ -36,7 +36,7 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.hydraulic.formulaId, "");
   assert.equal(APP_META.appName, "IWK Report Template");
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.5");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.6");
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -188,7 +188,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.5/);
+  assert.match(html, /Hafize \| Version 1\.0\.6/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -208,11 +208,11 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.5"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.5"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.6"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.6"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.5">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.6">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
 });
@@ -318,7 +318,12 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /createBodyPage/);
   assert.match(app, /pageFooter/);
   assert.match(app, /body-page-draft/);
-  assert.match(app, /Muka Surat/);
+  assert.equal(app.includes("Muka Surat"), false);
+  assert.match(app, /String\(pageNumber\)/);
+  assert.match(app, /clearAppendixPageNumbers/);
+  assert.match(app, /page\.removeAttribute\("data-page-number"\)/);
+  assert.match(app, /paginationReady/);
+  assert.match(app, /await renderReport\(\)/);
   assert.match(app, /updateContentsPageNumbers/);
   assert.match(app, /contents-page-number/);
   assert.match(app, /dataReportSectionId|reportSectionId/);
@@ -373,6 +378,8 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(css, /\.details-bottom-actions\s*\{/);
   assert.match(css, /\.details-close-button\s*\{/);
   assert.match(css, /\.print-page\s*\{[\s\S]*?height:\s*297mm/);
+  assert.match(css, /@page\s*\{[\s\S]*?margin:\s*0/);
+  assert.match(css, /@media print[\s\S]*?\.print-page\s*\{[\s\S]*?width:\s*210mm[\s\S]*?height:\s*297mm/);
   assert.match(css, /\.body-page-draft\s*\{[\s\S]*?visibility:\s*hidden/);
   assert.match(css, /\.page-footer\s*\{[\s\S]*?position:\s*absolute/);
   assert.match(css, /\.page-content\s*\{/);

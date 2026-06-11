@@ -88,6 +88,7 @@ let record = loadRecord();
 let entryHistory = loadHistory();
 let projectLibrary = loadProjectLibrary();
 let activeProjectId = loadActiveProjectId();
+let resizeRenderTimer = 0;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -1041,7 +1042,7 @@ function renderAdditionalSection(body, config) {
 }
 
 function renderBody() {
-  const body = node("section", "print-page body-page");
+  const body = node("section", "print-page body-page body-page-draft");
   activeContentsSections().forEach((config) => {
       if (config.id === "1.0") {
         renderIntroduction(body, config);
@@ -1139,25 +1140,7 @@ function cssString(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function bodyPageContentMetrics(bodyPage) {
-  const pageRect = bodyPage.getBoundingClientRect();
-  const style = window.getComputedStyle(bodyPage);
-  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
-  const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-  const contentWidth = Math.max(1, pageRect.width - paddingLeft - paddingRight);
-  return {
-    contentTop: pageRect.top + paddingTop,
-    pageContentHeight: contentWidth * (264 / 174)
-  };
-}
-
 function updateContentsPageNumbers() {
-  const bodyPage = reportDocument.querySelector(".body-page");
-  if (!bodyPage) {
-    return;
-  }
-  const { contentTop, pageContentHeight } = bodyPageContentMetrics(bodyPage);
   reportDocument.querySelectorAll("[data-contents-target]").forEach((item) => {
     const target = reportDocument.querySelector(
       `[data-report-section-id="${cssString(item.dataset.contentsTarget)}"]`
@@ -1166,14 +1149,104 @@ function updateContentsPageNumbers() {
     if (!target || !output) {
       return;
     }
-    const offset = target.getBoundingClientRect().top - contentTop;
-    output.textContent = String(Math.max(1, Math.floor(offset / pageContentHeight) + 1));
+    output.textContent = target.closest(".body-page")?.dataset.pageNumber || "-";
   });
 }
 
-function scheduleContentsPageNumberUpdate() {
+function pageFooter(pageNumber) {
+  const footer = node("p", "page-footer", `Muka Surat ${pageNumber}`);
+  footer.dataset.pageFooter = String(pageNumber);
+  return footer;
+}
+
+function createBodyPage(pageNumber) {
+  const page = node("section", "print-page body-page");
+  const content = node("div", "page-content");
+  page.dataset.pageNumber = String(pageNumber);
+  page.append(content, pageFooter(pageNumber));
+  return page;
+}
+
+function pageContent(page) {
+  return page.querySelector(".page-content") || page;
+}
+
+function bodyPageContentLimit(page) {
+  const style = window.getComputedStyle(page);
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+  const footerReserve = (page.clientWidth / 210) * 12;
+  return Math.max(1, page.clientHeight - paddingTop - paddingBottom - footerReserve);
+}
+
+function pageHasContent(page) {
+  return Boolean(pageContent(page).children.length);
+}
+
+function appendBlockToPage(page, block) {
+  const content = pageContent(page);
+  content.append(block);
+  return content.scrollHeight <= bodyPageContentLimit(page) + 1;
+}
+
+function renumberBodyPages(pages) {
+  pages.forEach((page, index) => {
+    const pageNumber = index + 1;
+    page.dataset.pageNumber = String(pageNumber);
+    const footer = page.querySelector(".page-footer");
+    if (footer) {
+      footer.textContent = `Muka Surat ${pageNumber}`;
+      footer.dataset.pageFooter = String(pageNumber);
+    }
+  });
+}
+
+function addFooterToAppendixPages(startNumber) {
+  let pageNumber = startNumber;
+  reportDocument.querySelectorAll(".appendix-page").forEach((page) => {
+    page.querySelector(".page-footer")?.remove();
+    page.dataset.pageNumber = String(pageNumber);
+    page.append(pageFooter(pageNumber));
+    pageNumber += 1;
+  });
+}
+
+function paginateRenderedBody() {
+  const draft = reportDocument.querySelector(".body-page-draft");
+  if (!draft) {
+    return;
+  }
+  const bodyBlocks = Array.from(draft.children);
+  const pages = [];
+  let currentPage = createBodyPage(1);
+  pages.push(currentPage);
+  reportDocument.insertBefore(currentPage, draft);
+
+  bodyBlocks.forEach((sourceBlock) => {
+    const block = sourceBlock.cloneNode(true);
+    if (appendBlockToPage(currentPage, block)) {
+      return;
+    }
+    pageContent(currentPage).removeChild(block);
+    if (!pageHasContent(currentPage)) {
+      pageContent(currentPage).append(block);
+      return;
+    }
+    currentPage = createBodyPage(pages.length + 1);
+    pages.push(currentPage);
+    reportDocument.insertBefore(currentPage, draft);
+    appendBlockToPage(currentPage, block);
+  });
+
+  draft.remove();
+  renumberBodyPages(pages);
+  addFooterToAppendixPages(pages.length + 1);
+  updateContentsPageNumbers();
+}
+
+function scheduleBodyPagination() {
   window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(updateContentsPageNumbers);
+    window.requestAnimationFrame(paginateRenderedBody);
   });
 }
 
@@ -1185,7 +1258,7 @@ function renderReport() {
     renderBody(),
     ...renderAppendixPages()
   );
-  scheduleContentsPageNumberUpdate();
+  scheduleBodyPagination();
 }
 
 editor.addEventListener("input", (event) => {
@@ -1431,7 +1504,10 @@ document.querySelector("#printReport").addEventListener("click", () => {
   }
 });
 
-window.addEventListener("resize", scheduleContentsPageNumberUpdate);
+window.addEventListener("resize", () => {
+  window.clearTimeout(resizeRenderTimer);
+  resizeRenderTimer = window.setTimeout(renderReport, 160);
+});
 
 installDetailsFooterControls();
 populateFields();

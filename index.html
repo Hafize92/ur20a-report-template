@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123f49">
     <title>IWK Report Template | Printable A4 Report Builder</title>
-    <link rel="stylesheet" href="./src/styles.css?v=1.0.4">
+    <link rel="stylesheet" href="./src/styles.css?v=1.0.5">
   </head>
   <body>
     <header class="app-header screen-only">
@@ -14,7 +14,7 @@
           <p class="kicker">Shared web report application</p>
           <h1>IWK <span>Report Template</span></h1>
         </div>
-        <p class="template-credit screen-only">Hafize | Version 1.0.4</p>
+        <p class="template-credit screen-only">Hafize | Version 1.0.5</p>
       </div>
       <div class="header-summary">
         <p>
@@ -65,7 +65,7 @@
         </section>
 
         <form id="recordEditor">
-          <details open>
+          <details>
             <summary>Document control and cover</summary>
             <div class="input-grid">
               <label>
@@ -165,7 +165,7 @@
             </label>
           </details>
 
-          <details open>
+          <details>
             <summary>Isi kandungan / report sections</summary>
             <p class="field-note">
               Use the dropdown to include or exclude each section. Add another section
@@ -175,7 +175,7 @@
             <button class="row-action" id="addContentsSection" type="button">Add report section</button>
           </details>
 
-          <details open>
+          <details>
             <summary>Report narrative</summary>
             <p class="field-note generated-note">
               <strong>1.0 Pengenalan</strong> is generated automatically using Project title
@@ -249,14 +249,14 @@
             </p>
           </details>
 
-          <details open>
+          <details>
             <summary>3.0 Kriteria rekabentuk</summary>
             <p class="field-note">Each entry is composed as a sentence in the report, not displayed in a table.</p>
             <div id="criteriaEditor" class="repeat-cards"></div>
             <button class="row-action" data-add="criteria" type="button">Add criterion</button>
           </details>
 
-          <details open>
+          <details>
             <summary>4.0 Population equivalent (PE)</summary>
             <p class="field-note generated-note">
               The PE basis statement is generated automatically using Table 3-1 of
@@ -283,7 +283,7 @@
             </label>
           </details>
 
-          <details open>
+          <details>
             <summary>7.0 Pengiraan rekabentuk awalan</summary>
             <p class="field-note">
               The preliminary calculation is generated automatically from the total PE above.
@@ -299,7 +299,7 @@
             </p>
           </details>
 
-          <details open>
+          <details>
             <summary>8.0 Formula hidraulik dan output kiraan</summary>
             <p class="field-note">
               Select one formula only. Changing the dropdown will replace the previous formula.
@@ -324,7 +324,7 @@
             <div id="selectedHydraulicFormulas" class="selected-methods"></div>
           </details>
 
-          <details open>
+          <details>
             <summary>9.0 Lampiran separator pages</summary>
             <p class="field-note">Each appendix becomes a full separator page in the PDF.</p>
             <div id="appendixEditor" class="repeat-cards"></div>
@@ -344,7 +344,7 @@
       </section>
     </main>
 
-    <script src="./src/report-model.js?v=1.0.4"></script>
-    <script src="./src/app.js?v=1.0.4"></script>
+    <script src="./src/report-model.js?v=1.0.5"></script>
+    <script src="./src/app.js?v=1.0.5"></script>
   </body>
 </html>

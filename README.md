@@ -1,6 +1,6 @@
-# UR20A Report Template
+# IWK Report Template
 
-Public static web app for preparing a printable A4 UR20A sewerage engineering
+Public static web app for preparing a printable A4 IWK sewerage engineering
 report from manually entered project information.
 
 Expected GitHub Pages URL:
@@ -43,5 +43,5 @@ Localhost is only for development. Users should use the GitHub Pages HTTPS link.
 
 ## Version
 
-`Hafize | Version 1.0.3` is visible in the template interface only and is excluded
+`Hafize | Version 1.0.4` is visible in the template interface only and is excluded
 from the printed PDF.

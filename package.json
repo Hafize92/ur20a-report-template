@@ -1,9 +1,9 @@
 {
   "name": "ur20a-report-template",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
-  "description": "Static shared-link UR20A sewerage engineering report template with independent browser records and printable A4 output.",
+  "description": "Static shared-link IWK sewerage engineering report template with independent browser records and printable A4 output.",
   "scripts": {
     "start": "node scripts/server.mjs",
     "serve": "node scripts/server.mjs",

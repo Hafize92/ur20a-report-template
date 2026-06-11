@@ -35,7 +35,8 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.find((section) => section.id === "5.0").enabled, "yes");
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.hydraulic.formulaId, "");
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.3");
+  assert.equal(APP_META.appName, "IWK Report Template");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.4");
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -57,6 +58,23 @@ test("missing standard report sections are restored while additional content is 
   assert.equal(record.contentsSections.find((section) => section.id === "5.0").enabled, "yes");
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.contentsSections.find((section) => section.id === "custom-10").content, "Nota");
+  assert.equal(record.contentsSections.find((section) => section.id === "custom-10").number, "10.0");
+});
+
+test("contents sections are renumbered automatically after exclusions", () => {
+  const record = normaliseRecord({
+    contentsSections: [
+      { id: "1.0", title: "PENGENALAN", enabled: "yes", number: "10.0" },
+      { id: "2.0", title: "OBJEKTIF", enabled: "no", number: "2.0" },
+      { id: "3.0", title: "KRITERIA REKABENTUK", enabled: "yes", number: "99.0" },
+      { id: "custom-a", title: "SEKSYEN TAMBAHAN", enabled: "yes", number: "20.0" }
+    ]
+  });
+
+  assert.equal(record.contentsSections.find((section) => section.id === "1.0").number, "1.0");
+  assert.equal(record.contentsSections.find((section) => section.id === "2.0").number, "");
+  assert.equal(record.contentsSections.find((section) => section.id === "3.0").number, "2.0");
+  assert.equal(record.contentsSections.find((section) => section.id === "custom-a").number, "9.0");
 });
 
 test("PE summary combines automatic line products with a rounding adjustment", () => {
@@ -170,7 +188,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.3/);
+  assert.match(html, /Hafize \| Version 1\.0\.4/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -190,11 +208,11 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.3"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.3"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.4"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.4"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.3">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.4">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
 });
@@ -229,6 +247,9 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   const pemilikLogo = await readFile(new URL("../assets/pemilik.png", import.meta.url));
   const jkrLogo = await readFile(new URL("../assets/jkr.png", import.meta.url));
 
+  assert.match(html, /IWK Report Template \| Printable A4 Report Builder/);
+  assert.match(html, /<h1>IWK <span>Report Template<\/span><\/h1>/);
+  assert.equal(html.includes("UR20A <span>Report Template</span>"), false);
   assert.equal(html.includes("Hydraulic sewer schedule"), false);
   assert.equal(html.includes('data-field="narrative.introduction"'), false);
   assert.equal(html.includes('data-field="narrative.criteriaBasis"'), false);
@@ -276,6 +297,7 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(html, /data-site-field="existingSystemStatus"/);
   assert.match(html, /data-design-field="peakFactorCoefficient"/);
   assert.match(html, /id="contentsSectionsEditor"/);
+  assert.equal(html.includes('data-field="contentsSections.number"'), false);
   assert.match(html, /Rujukan IWK/);
   assert.match(html, /Submission ke-/);
   assert.match(html, /PDC2 Paip Retikulasi/);
@@ -289,6 +311,15 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /designTeam:\s*"\.\/assets\/jkr\.png"/);
   assert.equal(app.includes("FileReader"), false);
   assert.equal(app.includes("storeLogo"), false);
+  assert.match(app, /syncContentSectionNumbers/);
+  assert.match(app, /contentSectionNumberField/);
+  assert.match(app, /updateContentsPageNumbers/);
+  assert.match(app, /contents-page-number/);
+  assert.match(app, /dataReportSectionId|reportSectionId/);
+  assert.match(app, /installDetailsFooterControls/);
+  assert.match(app, /data-close-details/);
+  assert.match(app, /Start a blank IWK working draft/);
+  assert.match(app, /valid IWK template record/);
   assert.match(app, /projectCopyNameWithReportCode/);
   assert.match(app, /formulaChoice\.addEventListener\("change"/);
   assert.match(app, /Tapak cadangan projek ini terletak di atas/);
@@ -330,6 +361,11 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(css, /\.signature-line\s*\{[\s\S]*?margin:\s*8mm auto 2\.5mm/);
   assert.match(css, /\.report-subtext-list\s*\{/);
   assert.match(css, /\.header-actions \.file-action\s*\{[\s\S]*?margin-top:\s*0/);
+  assert.match(css, /\.contents-list-heading\s*\{/);
+  assert.match(css, /\.contents-page-number\s*\{[\s\S]*?text-align:\s*right/);
+  assert.match(css, /\.auto-section-number\s*\{/);
+  assert.match(css, /\.details-bottom-actions\s*\{/);
+  assert.match(css, /\.details-close-button\s*\{/);
   assert.equal(css.includes(".logo-input-row"), false);
   assert.equal(css.includes(".logo-placeholder"), false);
   assert.equal(css.includes(".report-document::before"), false);

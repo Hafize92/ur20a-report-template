@@ -1,8 +1,8 @@
 (() => {
 const APP_META = Object.freeze({
-  appName: "UR20A Report Template",
+  appName: "IWK Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.3",
+  credit: "Hafize | Version 1.0.4",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
@@ -224,7 +224,13 @@ function normaliseContentsSections(rows) {
   const additionalSections = candidates
     .filter((row) => !standardIds.has(text(plainObject(row).id)))
     .map((row, index) => normaliseSection(row, index + standardSections.length));
-  return [...standardSections, ...additionalSections];
+  let runningNumber = 1;
+  return [...standardSections, ...additionalSections].map((section) => {
+    if (section.enabled === "no") {
+      return { ...section, number: "" };
+    }
+    return { ...section, number: `${runningNumber++}.0` };
+  });
 }
 
 function normaliseRecord(value) {

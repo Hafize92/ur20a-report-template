@@ -206,6 +206,20 @@ function renderProjectLibrary() {
     : "Active copy: unsaved working draft";
 }
 
+function installDetailsFooterControls() {
+  editor.querySelectorAll("details").forEach((details) => {
+    if (details.querySelector("[data-close-details]")) {
+      return;
+    }
+    const actions = node("div", "details-bottom-actions");
+    const close = node("button", "details-close-button", "▲ Close this section");
+    close.type = "button";
+    close.dataset.closeDetails = "true";
+    actions.append(close);
+    details.append(actions);
+  });
+}
+
 function updateActiveProject() {
   const project = activeProject();
   if (!project) {
@@ -305,6 +319,18 @@ function inputForRow(arrayName, index, field) {
   return label;
 }
 
+function syncContentSectionNumbers() {
+  let runningNumber = 1;
+  record.contentsSections.forEach((section) => {
+    section.number = section.enabled === "yes" ? `${runningNumber++}.0` : "";
+  });
+}
+
+function activeContentsSections() {
+  syncContentSectionNumbers();
+  return record.contentsSections.filter((section) => section.enabled === "yes");
+}
+
 function removeButton(arrayName, index) {
   const remove = node("button", "row-remove", "Remove");
   remove.type = "button";
@@ -341,7 +367,20 @@ function contentSectionField(index, key, label, tag = "input") {
   return wrapper;
 }
 
+function contentSectionNumberField(index) {
+  const wrapper = node("label");
+  wrapper.append("Section no. (auto)");
+  const input = document.createElement("input");
+  input.className = "auto-section-number";
+  input.readOnly = true;
+  input.tabIndex = -1;
+  input.value = record.contentsSections[index].number || "Excluded";
+  wrapper.append(input);
+  return wrapper;
+}
+
 function renderContentsSectionsEditor() {
+  syncContentSectionNumbers();
   contentsSectionsEditor.replaceChildren();
   record.contentsSections.forEach((sectionData, index) => {
     const card = node("section", "repeat-card contents-section-card");
@@ -356,7 +395,7 @@ function renderContentsSectionsEditor() {
     include.append(select);
     grid.append(
       include,
-      contentSectionField(index, "number", "Section no."),
+      contentSectionNumberField(index),
       contentSectionField(index, "title", "Section title")
     );
     card.append(grid);
@@ -527,6 +566,7 @@ function noteSaved(message = "Saved in this browser profile") {
 }
 
 function saveAndRender(message) {
+  syncContentSectionNumbers();
   try {
     localStorage.setItem(APP_META.storageKey, JSON.stringify(record));
     updateActiveProject();
@@ -567,7 +607,9 @@ function createReportSection(number, title) {
 }
 
 function createConfiguredSection(config, number, title) {
-  return createReportSection(config?.number || number, config?.title || title);
+  const section = createReportSection(config?.number || number, config?.title || title);
+  section.dataset.reportSectionId = config?.id || number;
+  return section;
 }
 
 function logoForParty(key, label) {
@@ -643,12 +685,24 @@ function renderCover() {
 function renderContents() {
   const page = node("section", "print-page contents-page");
   page.append(node("h2", "", "ISI KANDUNGAN"));
+  const heading = node("div", "contents-list-heading");
+  heading.append(
+    node("span", "", "NO."),
+    node("span", "", "KANDUNGAN"),
+    node("span", "", "M/S")
+  );
   const list = node("ol", "contents-list");
-  record.contentsSections.filter((section) => section.enabled === "yes").forEach(({ number, title }) => {
-    const item = node("li");
-    item.append(node("span", "", number), node("span", "", title));
+  activeContentsSections().forEach(({ id, number, title }) => {
+    const item = node("li", "contents-item");
+    item.dataset.contentsTarget = id;
+    item.append(
+      node("span", "contents-section-number", number),
+      node("span", "contents-section-title", title),
+      node("span", "contents-page-number", "-")
+    );
     list.append(item);
   });
+  page.append(heading);
   page.append(list);
   return page;
 }
@@ -988,9 +1042,7 @@ function renderAdditionalSection(body, config) {
 
 function renderBody() {
   const body = node("section", "print-page body-page");
-  record.contentsSections
-    .filter((section) => section.enabled === "yes")
-    .forEach((config) => {
+  activeContentsSections().forEach((config) => {
       if (config.id === "1.0") {
         renderIntroduction(body, config);
       } else if (config.id === "2.0") {
@@ -1083,13 +1135,57 @@ function renderAppendixPages() {
   });
 }
 
+function cssString(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function bodyPageContentMetrics(bodyPage) {
+  const pageRect = bodyPage.getBoundingClientRect();
+  const style = window.getComputedStyle(bodyPage);
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const contentWidth = Math.max(1, pageRect.width - paddingLeft - paddingRight);
+  return {
+    contentTop: pageRect.top + paddingTop,
+    pageContentHeight: contentWidth * (264 / 174)
+  };
+}
+
+function updateContentsPageNumbers() {
+  const bodyPage = reportDocument.querySelector(".body-page");
+  if (!bodyPage) {
+    return;
+  }
+  const { contentTop, pageContentHeight } = bodyPageContentMetrics(bodyPage);
+  reportDocument.querySelectorAll("[data-contents-target]").forEach((item) => {
+    const target = reportDocument.querySelector(
+      `[data-report-section-id="${cssString(item.dataset.contentsTarget)}"]`
+    );
+    const output = item.querySelector(".contents-page-number");
+    if (!target || !output) {
+      return;
+    }
+    const offset = target.getBoundingClientRect().top - contentTop;
+    output.textContent = String(Math.max(1, Math.floor(offset / pageContentHeight) + 1));
+  });
+}
+
+function scheduleContentsPageNumberUpdate() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(updateContentsPageNumbers);
+  });
+}
+
 function renderReport() {
+  syncContentSectionNumbers();
   reportDocument.replaceChildren(
     renderCover(),
     renderContents(),
     renderBody(),
     ...renderAppendixPages()
   );
+  scheduleContentsPageNumberUpdate();
 }
 
 editor.addEventListener("input", (event) => {
@@ -1111,7 +1207,12 @@ editor.addEventListener("input", (event) => {
   } else if (target.dataset.array) {
     record[target.dataset.array][Number(target.dataset.index)][target.dataset.key] = target.value;
   } else if (target.dataset.contentSection !== undefined) {
-    record.contentsSections[Number(target.dataset.contentSection)][target.dataset.key] = target.value;
+    const section = record.contentsSections[Number(target.dataset.contentSection)];
+    section[target.dataset.key] = target.value;
+    if (target.dataset.key === "enabled") {
+      syncContentSectionNumbers();
+      renderContentsSectionsEditor();
+    }
   } else {
     return;
   }
@@ -1132,6 +1233,14 @@ editor.addEventListener("change", (event) => {
 });
 
 editor.addEventListener("click", (event) => {
+  const closeDetails = event.target.closest("[data-close-details]");
+  if (closeDetails) {
+    const details = closeDetails.closest("details");
+    if (details) {
+      details.open = false;
+    }
+    return;
+  }
   const add = event.target.closest("[data-add]");
   if (add) {
     const arrayName = add.dataset.add;
@@ -1207,7 +1316,7 @@ formulaSelection.addEventListener("click", (event) => {
 });
 
 document.querySelector("#newRecord").addEventListener("click", () => {
-  if (!window.confirm("Start a blank UR20A working draft? Saved project copies will not be changed.")) {
+  if (!window.confirm("Start a blank IWK working draft? Saved project copies will not be changed.")) {
     return;
   }
   setActiveProjectId("");
@@ -1271,6 +1380,7 @@ document.querySelector("#deleteProjectCopy").addEventListener("click", () => {
 });
 
 document.querySelector("#exportRecord").addEventListener("click", () => {
+  syncContentSectionNumbers();
   const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -1293,7 +1403,7 @@ document.querySelector("#importRecord").addEventListener("change", async (event)
     populateFields();
     saveAndRender("Record imported as an unsaved working draft");
   } catch {
-    window.alert("The selected file is not a valid UR20A template record.");
+    window.alert("The selected file is not a valid IWK template record.");
   } finally {
     event.target.value = "";
   }
@@ -1321,5 +1431,8 @@ document.querySelector("#printReport").addEventListener("click", () => {
   }
 });
 
+window.addEventListener("resize", scheduleContentsPageNumberUpdate);
+
+installDetailsFooterControls();
 populateFields();
 renderReport();

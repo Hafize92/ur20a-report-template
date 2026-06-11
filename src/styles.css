@@ -214,6 +214,26 @@ details > :last-child {
   margin-bottom: 17px;
 }
 
+.details-bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #dbe3e1;
+}
+
+.details-close-button {
+  border: 1px solid #c8d5d3;
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: var(--deep);
+  background: #f7fbfa;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 label {
   display: flex;
   flex-direction: column;
@@ -242,6 +262,12 @@ select {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 400;
+}
+
+.auto-section-number {
+  color: #526b70;
+  background: #f4f8f7;
+  cursor: default;
 }
 
 textarea {
@@ -597,19 +623,38 @@ select:focus {
   letter-spacing: 0;
 }
 
+.contents-list-heading,
 .contents-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+.contents-list-heading,
 .contents-list li {
   display: grid;
-  grid-template-columns: 16mm 1fr;
+  grid-template-columns: 16mm 1fr 16mm;
   gap: 3mm;
+  align-items: baseline;
+}
+
+.contents-list-heading {
+  margin-bottom: 2.5mm;
+  padding-bottom: 1.6mm;
+  border-bottom: 1px solid #000;
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.contents-list li {
   padding: 2.7mm 0;
   font-size: 10.5pt;
   font-weight: 700;
+}
+
+.contents-page-number {
+  text-align: right;
 }
 
 .body-page {

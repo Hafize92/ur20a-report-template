@@ -2,7 +2,7 @@
 const APP_META = Object.freeze({
   appName: "IWK Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.8",
+  credit: "Hafize | Version 1.0.9",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
@@ -54,11 +54,168 @@ const defaultAppendices = [
 ];
 
 const PE_PREMISES_OPTIONS = Object.freeze([
+  Object.freeze({ id: "residential-unit", premises: "Residential", rate: "4", unit: "residential unit" }),
   Object.freeze({
-    id: "sekolah-pelajar",
-    premises: "Sekolah",
+    id: "residential-small-450",
+    premises: "Residential units smaller than 700 sq. ft - <= 450 sq. ft",
+    rate: "2",
+    unit: "residential unit"
+  }),
+  Object.freeze({
+    id: "residential-small-451-699",
+    premises: "Residential units smaller than 700 sq. ft - 451 to 699 sq. ft",
+    rate: "3",
+    unit: "residential unit"
+  }),
+  Object.freeze({
+    id: "factory-staff",
+    premises: "Factories (excluding process water)",
+    rate: "0.3",
+    unit: "staff"
+  }),
+  Object.freeze({
+    id: "hospital-in-patient-bed",
+    premises: "Hospitals - with in-patient facilities",
+    rate: "5",
+    unit: "bed"
+  }),
+  Object.freeze({
+    id: "hospital-without-in-patient-100m2",
+    premises: "Hospitals - without in-patient facilities",
+    rate: "3",
+    unit: "100 m2"
+  }),
+  Object.freeze({
+    id: "school-day-student",
+    premises: "Schools / Educational Institutions - Day School / Institutions",
     rate: "0.2",
-    unit: "pelajar"
+    unit: "student",
+    aliases: Object.freeze(["Sekolah"])
+  }),
+  Object.freeze({
+    id: "school-fully-residential-student",
+    premises: "Schools / Educational Institutions - Fully Residential",
+    rate: "1",
+    unit: "student"
+  }),
+  Object.freeze({
+    id: "school-partial-residential-student",
+    premises: "Schools / Educational Institutions - Partial Residential (residential student)",
+    rate: "1",
+    unit: "residential student"
+  }),
+  Object.freeze({
+    id: "school-partial-non-residential-student",
+    premises: "Schools / Educational Institutions - Partial Residential (non-residential student)",
+    rate: "0.2",
+    unit: "non-residential student"
+  }),
+  Object.freeze({
+    id: "aged-care-bed",
+    premises: "Aged Care / Nursing Home / Rehab Care",
+    rate: "1",
+    unit: "bed"
+  }),
+  Object.freeze({
+    id: "workers-quarters-bed",
+    premises: "Workers Quarters / Dormitory / Construction Site (Specifically Planned / Designated)",
+    rate: "1",
+    unit: "bed"
+  }),
+  Object.freeze({
+    id: "religious-person",
+    premises: "Mosque / Church / Temple",
+    rate: "0.2",
+    unit: "person"
+  }),
+  Object.freeze({ id: "prison-person", premises: "Prison", rate: "1", unit: "person" }),
+  Object.freeze({
+    id: "public-utility-water-closet",
+    premises: "Public Utility Works: TNB substations, Water Treatment Plant, Sewage Treatment Plant (STP)",
+    rate: "15",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "hotel-with-dining-laundry-room",
+    premises: "Hotel - With dining & laundry facilities",
+    rate: "4",
+    unit: "room"
+  }),
+  Object.freeze({
+    id: "hotel-without-dining-laundry-room",
+    premises: "Hotel - Without dining & laundry facilities",
+    rate: "3",
+    unit: "room"
+  }),
+  Object.freeze({ id: "market-wet-stall", premises: "Market - Wet Type", rate: "3", unit: "stall" }),
+  Object.freeze({ id: "market-dry-stall", premises: "Market - Dry Type", rate: "1", unit: "stall" }),
+  Object.freeze({ id: "clinic-100m2", premises: "Clinic", rate: "3", unit: "100m2 gross area" }),
+  Object.freeze({
+    id: "transport-hub-with-facilities-water-closet",
+    premises: "Petrol Kiosks / Service Stations / Bus Terminals / Taxi Terminal / Train Terminals and similar transportation hubs - With facilities (restaurant, mart, others)",
+    rate: "25",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "transport-hub-without-facilities-water-closet",
+    premises: "Petrol Kiosks / Service Stations / Bus Terminals / Taxi Terminal / Train Terminals and similar transportation hubs - Without facilities",
+    rate: "15",
+    unit: "water closet"
+  }),
+  Object.freeze({ id: "warehouse-water-closet", premises: "Warehouse", rate: "15", unit: "water closet" }),
+  Object.freeze({ id: "stadium-person", premises: "Stadium", rate: "0.2", unit: "person" }),
+  Object.freeze({
+    id: "swimming-pool-sports-complex-person",
+    premises: "Swimming Pool / Sports Complex",
+    rate: "0.5",
+    unit: "person"
+  }),
+  Object.freeze({ id: "public-toilet-water-closet", premises: "Public Toilet", rate: "15", unit: "water closet" }),
+  Object.freeze({
+    id: "camp-site-with-facilities-water-closet",
+    premises: "Camp Site - With facilities",
+    rate: "25",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "camp-site-without-facilities-water-closet",
+    premises: "Camp Site - Without facilities",
+    rate: "15",
+    unit: "water closet"
+  }),
+  Object.freeze({ id: "rv-camp-site-water-closet", premises: "RV Camp Site", rate: "35", unit: "water closet" }),
+  Object.freeze({ id: "airport-passenger", premises: "Airport - Passenger", rate: "0.2", unit: "passenger" }),
+  Object.freeze({ id: "airport-employee", premises: "Airport - Employee", rate: "0.3", unit: "employee" }),
+  Object.freeze({ id: "laundry-machine", premises: "Laundry", rate: "10", unit: "machine" }),
+  Object.freeze({
+    id: "golf-course-with-facilities-water-closet",
+    premises: "Golf Course - With facilities (restaurant, mart, others)",
+    rate: "25",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "golf-course-without-facilities-water-closet",
+    premises: "Golf Course - Without facilities",
+    rate: "15",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "highway-rr-water-closet",
+    premises: "Highway - With rest and relaxation (R & R) facilities",
+    rate: "35",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "highway-lay-by-water-closet",
+    premises: "Highway - Lay-by",
+    rate: "15",
+    unit: "water closet"
+  }),
+  Object.freeze({
+    id: "others-100m2",
+    premises: "Others (Offices, Shopping Complex, Entertainment / Recreational Centres, Restaurants, Cafeteria, Theatres)",
+    rate: "3",
+    unit: "100m2 gross area"
   })
 ]);
 
@@ -253,7 +410,14 @@ function pePremisesOption(value) {
 
 function pePremisesOptionByPremises(value) {
   const premises = text(value).trim().toLowerCase();
-  return PE_PREMISES_OPTIONS.find((option) => option.premises.toLowerCase() === premises) || null;
+  return (
+    PE_PREMISES_OPTIONS.find(
+      (option) =>
+        option.premises.toLowerCase() === premises ||
+        (Array.isArray(option.aliases) &&
+          option.aliases.some((alias) => alias.toLowerCase() === premises))
+    ) || null
+  );
 }
 
 function normalisePeRows(rows, defaults) {

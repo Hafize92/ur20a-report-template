@@ -37,7 +37,7 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.hydraulic.formulaId, "");
   assert.equal(APP_META.appName, "IWK Report Template");
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.8");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.9");
   assert.equal(APP_META.authKey, "ur20a-report-template-auth-v1");
   assert.equal(record.peRows[0].premisesId, "");
   assert.equal(record.peRows[0].unit, "");
@@ -45,11 +45,23 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.existingPeRows[0].unit, "");
   assert.equal(record.includeExistingPeInTotal, "no");
   assert.deepEqual(PE_PREMISES_OPTIONS[0], {
-    id: "sekolah-pelajar",
-    premises: "Sekolah",
-    rate: "0.2",
-    unit: "pelajar"
+    id: "residential-unit",
+    premises: "Residential",
+    rate: "4",
+    unit: "residential unit"
   });
+  assert.equal(
+    PE_PREMISES_OPTIONS.find((option) => option.id === "school-day-student").unit,
+    "student"
+  );
+  assert.equal(
+    PE_PREMISES_OPTIONS.find((option) => option.id === "airport-employee").rate,
+    "0.3"
+  );
+  assert.equal(
+    PE_PREMISES_OPTIONS.find((option) => option.id === "others-100m2").unit,
+    "100m2 gross area"
+  );
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -93,25 +105,25 @@ test("contents sections are renumbered automatically after exclusions", () => {
 test("PE summary combines automatic line products with a rounding adjustment", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premisesId: "sekolah-pelajar", quantity: "360" }
+    { premisesId: "school-day-student", quantity: "360" }
   ];
   record.peAdjustment = "8";
 
   const result = summarisePe(record);
   assert.equal(result.rows[0].subtotal, 72);
-  assert.equal(result.rows[0].premises, "Sekolah");
-  assert.equal(result.rows[0].unit, "pelajar");
+  assert.equal(result.rows[0].premises, "Schools / Educational Institutions - Day School / Institutions");
+  assert.equal(result.rows[0].unit, "student");
   assert.equal(result.total, 80);
 });
 
 test("existing PE is calculated but only included in total when selected", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premisesId: "sekolah-pelajar", quantity: "100" }
+    { premisesId: "school-day-student", quantity: "100" }
   ];
   record.existingPeEnabled = "yes";
   record.existingPeRows = [
-    { premisesId: "sekolah-pelajar", quantity: "50" }
+    { premisesId: "school-day-student", quantity: "50" }
   ];
 
   const excluded = summarisePe(record);
@@ -129,7 +141,7 @@ test("existing PE is calculated but only included in total when selected", () =>
 test("PE subtotal is always calculated from quantity and selected MSIG rate", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premisesId: "sekolah-pelajar", quantity: "12", rate: "9" }
+    { premisesId: "school-day-student", quantity: "12", rate: "9" }
   ];
 
   const result = summarisePe(record);
@@ -140,7 +152,7 @@ test("PE subtotal is always calculated from quantity and selected MSIG rate", ()
 test("preliminary design is calculated automatically from total PE and the fixed exponent", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premisesId: "sekolah-pelajar", quantity: "360" }
+    { premisesId: "school-day-student", quantity: "360" }
   ];
   record.peAdjustment = "8";
 
@@ -176,11 +188,11 @@ test("import normalisation preserves expected fields and drops unrelated values"
   assert.equal(imported.criteria.length, 1);
   assert.equal(imported.criteria[0].item, "Jenis paip");
   assert.equal(imported.peRows[0].quantity, "10");
-  assert.equal(imported.peRows[0].premisesId, "sekolah-pelajar");
+  assert.equal(imported.peRows[0].premisesId, "school-day-student");
   assert.equal(imported.peRows[0].rate, "0.2");
-  assert.equal(imported.peRows[0].unit, "pelajar");
+  assert.equal(imported.peRows[0].unit, "student");
   assert.equal(imported.existingPeEnabled, "yes");
-  assert.equal(imported.existingPeRows[0].unit, "pelajar");
+  assert.equal(imported.existingPeRows[0].unit, "student");
   assert.equal(imported.includeExistingPeInTotal, "yes");
   assert.equal(imported.design.peakFactorCoefficient, "3.4");
 });
@@ -234,7 +246,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.8/);
+  assert.match(html, /Hafize \| Version 1\.0\.9/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -254,13 +266,23 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.8"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.8"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.9"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.9"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.8">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.9">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
+});
+
+test("changelog records the current MSIG PE update and retained password gate", async () => {
+  const changelog = await readFile(new URL("../CHANGELOG.md", import.meta.url), "utf8");
+
+  assert.match(changelog, /## 1\.0\.9 - 2026-06-17/);
+  assert.match(changelog, /MSIG Vol 1 Planning Principle and Tools\.pdf/);
+  assert.match(changelog, /Table 3-1: PE for Various Premises\/Establishments/);
+  assert.match(changelog, /default password `pendksi1`/);
+  assert.match(changelog, /Removed the Word export button/);
 });
 
 test("MSIG hydraulic choices are restricted to the three permitted formula options", () => {
@@ -352,7 +374,7 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(html, /data-simple-field="existingPeEnabled"/);
   assert.match(html, /data-simple-field="includeExistingPeInTotal"/);
   assert.match(html, /id="existingPeFields"/);
-  assert.match(html, /id="exportWord"/);
+  assert.equal(html.includes('id="exportWord"'), false);
   assert.equal(html.includes("Manual subtotal"), false);
   assert.equal(html.includes("MSIG unit"), false);
   assert.equal(html.includes('id="msigPeUnits"'), false);
@@ -400,10 +422,10 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /existingFields\.hidden/);
   assert.match(app, /existingRows/);
   assert.match(app, /PE sedia ada diambil kira/);
-  assert.match(app, /exportWordDocument/);
-  assert.match(app, /application\/msword/);
-  assert.match(app, /\.doc`/);
-  assert.match(app, /inlineReportImages/);
+  assert.equal(app.includes("exportWordDocument"), false);
+  assert.equal(app.includes("application/msword"), false);
+  assert.equal(app.includes(".doc`"), false);
+  assert.equal(app.includes("inlineReportImages"), false);
   assert.match(app, /formulaChoice\.addEventListener\("change"/);
   assert.match(app, /Tapak cadangan projek ini terletak di atas/);
   assert.match(app, /sebahagian/);

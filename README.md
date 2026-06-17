@@ -13,6 +13,8 @@ https://hafize92.github.io/ur20a-report-template/
 
 - The app is static HTML, CSS and JavaScript.
 - Multiple users can open the same HTTPS link from their own laptops.
+- Users can also run a local copy with `npm start` when working without the
+  public GitHub Pages link.
 - Each browser profile keeps its own saved project copies through browser storage.
 - Project data is not shared between users unless a user exports and sends a JSON
   record manually.
@@ -39,9 +41,10 @@ Then open:
 http://localhost:4174/
 ```
 
-Localhost is only for development. Users should use the GitHub Pages HTTPS link.
+Localhost can be used for local work on one device. The GitHub Pages HTTPS link
+remains the shared version for multiple users.
 
 ## Version
 
-`Hafize | Version 1.0.8` is visible in the template interface only and is excluded
+`Hafize | Version 1.0.9` is visible in the template interface only and is excluded
 from the printed PDF.

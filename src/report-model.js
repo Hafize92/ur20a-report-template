@@ -2,7 +2,7 @@
 const APP_META = Object.freeze({
   appName: "IWK Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.7",
+  credit: "Hafize | Version 1.0.8",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
@@ -52,6 +52,15 @@ const defaultAppendices = [
   ["B", "Kiraan Hidraulik Pembetungan", ""],
   ["C", "Surat / Keputusan Pihak Berkuasa", ""]
 ];
+
+const PE_PREMISES_OPTIONS = Object.freeze([
+  Object.freeze({
+    id: "sekolah-pelajar",
+    premises: "Sekolah",
+    rate: "0.2",
+    unit: "pelajar"
+  })
+]);
 
 const HYDRAULIC_FORMULAS = Object.freeze({
   colebrook: Object.freeze({
@@ -182,8 +191,9 @@ function createBlankRecord() {
     },
     criteria: defaultCriteria.map(([item, value, unit]) => ({ item, value, unit })),
     peBasis: "",
-    peRows: [{ premises: "", quantity: "", rate: "", unit: "", subtotalOverride: "" }],
-    existingPeRows: [{ premises: "", quantity: "", rate: "", unit: "", subtotalOverride: "" }],
+    peRows: [{ premisesId: "", premises: "", quantity: "", rate: "", unit: "" }],
+    existingPeEnabled: "no",
+    existingPeRows: [{ premisesId: "", premises: "", quantity: "", rate: "", unit: "" }],
     includeExistingPeInTotal: "no",
     peAdjustment: "",
     contentsSections: defaultContentsSections.map((section) => ({ ...section })),
@@ -233,6 +243,31 @@ function normaliseContentsSections(rows) {
       return { ...section, number: "" };
     }
     return { ...section, number: `${runningNumber++}.0` };
+  });
+}
+
+function pePremisesOption(value) {
+  const id = text(value);
+  return PE_PREMISES_OPTIONS.find((option) => option.id === id) || null;
+}
+
+function pePremisesOptionByPremises(value) {
+  const premises = text(value).trim().toLowerCase();
+  return PE_PREMISES_OPTIONS.find((option) => option.premises.toLowerCase() === premises) || null;
+}
+
+function normalisePeRows(rows, defaults) {
+  const candidates = Array.isArray(rows) && rows.length ? rows : defaults;
+  return candidates.map((row) => {
+    const safeRow = plainObject(row);
+    const option = pePremisesOption(safeRow.premisesId) || pePremisesOptionByPremises(safeRow.premises);
+    return {
+      premisesId: option?.id || text(safeRow.premisesId),
+      premises: option?.premises || text(safeRow.premises),
+      quantity: text(safeRow.quantity),
+      rate: option?.rate || text(safeRow.rate),
+      unit: option?.unit || text(safeRow.unit)
+    };
   });
 }
 
@@ -299,20 +334,9 @@ function normaliseRecord(value) {
       (criterion) => !/faktor aliran puncak/i.test(criterion.item)
     ),
     peBasis: text(incoming.peBasis),
-    peRows: normaliseRows(incoming.peRows, defaults.peRows, [
-      "premises",
-      "quantity",
-      "rate",
-      "unit",
-      "subtotalOverride"
-    ]),
-    existingPeRows: normaliseRows(incoming.existingPeRows, defaults.existingPeRows, [
-      "premises",
-      "quantity",
-      "rate",
-      "unit",
-      "subtotalOverride"
-    ]),
+    peRows: normalisePeRows(incoming.peRows, defaults.peRows),
+    existingPeEnabled: text(incoming.existingPeEnabled) === "yes" ? "yes" : defaults.existingPeEnabled,
+    existingPeRows: normalisePeRows(incoming.existingPeRows, defaults.existingPeRows),
     includeExistingPeInTotal:
       text(incoming.includeExistingPeInTotal) === "yes" ? "yes" : defaults.includeExistingPeInTotal,
     peAdjustment: text(incoming.peAdjustment),
@@ -351,9 +375,8 @@ function summarisePe(value) {
       .map((row) => {
         const quantity = numeric(row.quantity);
         const rate = numeric(row.rate);
-        const override = numeric(row.subtotalOverride);
-        const subtotal = override ?? (quantity !== null && rate !== null ? quantity * rate : null);
-        return { ...row, subtotal, manuallyOverridden: override !== null };
+        const subtotal = quantity !== null && rate !== null ? quantity * rate : null;
+        return { ...row, subtotal };
       })
       .filter(
         (row) =>
@@ -364,15 +387,17 @@ function summarisePe(value) {
           row.subtotal !== null
       );
   const rows = summariseRows(record.peRows);
-  const existingRows = summariseRows(record.existingPeRows);
+  const existingPeEnabled = record.existingPeEnabled === "yes";
+  const existingRows = existingPeEnabled ? summariseRows(record.existingPeRows) : [];
   const subtotal = rows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const existingSubtotal = existingRows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
-  const includeExistingPeInTotal = record.includeExistingPeInTotal === "yes";
+  const includeExistingPeInTotal = existingPeEnabled && record.includeExistingPeInTotal === "yes";
   const includedExistingSubtotal = includeExistingPeInTotal ? existingSubtotal : 0;
   const adjustment = numeric(record.peAdjustment);
 
   return {
     rows,
+    existingPeEnabled,
     existingRows,
     subtotal,
     existingSubtotal,
@@ -468,6 +493,7 @@ function requiredFieldsMissing(value) {
 globalThis.SwaReportModel = Object.freeze({
   APP_META,
   HYDRAULIC_FORMULAS,
+  PE_PREMISES_OPTIONS,
   REPORT_CODE_OPTIONS,
   REPORT_SECTIONS,
   activeRows,

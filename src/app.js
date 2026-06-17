@@ -1,6 +1,7 @@
 const {
   APP_META,
   HYDRAULIC_FORMULAS,
+  PE_PREMISES_OPTIONS,
   REPORT_CODE_OPTIONS,
   REPORT_SECTIONS,
   activeRows,
@@ -84,11 +85,11 @@ const CARD_DEFINITIONS = Object.freeze({
 });
 
 const PE_BLANK_ROW = Object.freeze({
+  premisesId: "",
   premises: "",
   quantity: "",
   rate: "",
-  unit: "",
-  subtotalOverride: ""
+  unit: ""
 });
 
 let record = loadRecord();
@@ -475,32 +476,35 @@ function renderContentsSectionsEditor() {
 function renderPeTableEditor(bodyId, arrayName) {
   const body = document.querySelector(`#${bodyId}`);
   body.replaceChildren();
-  const fields = [
-    { key: "premises" },
-    { key: "quantity", type: "number" },
-    { key: "rate", type: "number" },
-    { key: "unit" },
-    { key: "subtotalOverride", type: "number" }
-  ];
-
   record[arrayName].forEach((rowData, index) => {
     const row = node("tr");
-    fields.forEach((field) => {
-      const cell = node("td");
-      const input = document.createElement("input");
-      input.dataset.array = arrayName;
-      input.dataset.index = String(index);
-      input.dataset.key = field.key;
-      input.type = field.type || "text";
-      input.step = field.type === "number" ? "any" : "";
-      if (field.key === "unit") {
-        input.setAttribute("list", "msigPeUnits");
-        input.placeholder = "pelajar";
-      }
-      input.value = rowData[field.key] || "";
-      cell.append(input);
-      row.append(cell);
+    const premisesCell = node("td");
+    const premises = document.createElement("select");
+    premises.dataset.array = arrayName;
+    premises.dataset.index = String(index);
+    premises.dataset.key = "premisesId";
+    premises.append(new Option("Select MSIG premise", ""));
+    PE_PREMISES_OPTIONS.forEach((option) => {
+      premises.append(new Option(option.premises, option.id));
     });
+    premises.value = rowData.premisesId || "";
+    premisesCell.append(premises);
+    row.append(premisesCell);
+
+    const quantityCell = node("td");
+    const quantity = document.createElement("input");
+    quantity.dataset.array = arrayName;
+    quantity.dataset.index = String(index);
+    quantity.dataset.key = "quantity";
+    quantity.type = "number";
+    quantity.step = "any";
+    quantity.value = rowData.quantity || "";
+    quantityCell.append(quantity);
+    row.append(quantityCell);
+
+    const rateCell = node("td", "readonly-cell", peRateLabel(rowData) || "-");
+    row.append(rateCell);
+
     const actionCell = node("td");
     actionCell.append(removeButton(arrayName, index));
     row.append(actionCell);
@@ -511,6 +515,10 @@ function renderPeTableEditor(bodyId, arrayName) {
 function renderPeEditor() {
   renderPeTableEditor("peEditor", "peRows");
   renderPeTableEditor("existingPeEditor", "existingPeRows");
+  const existingFields = document.querySelector("#existingPeFields");
+  if (existingFields) {
+    existingFields.hidden = record.existingPeEnabled !== "yes";
+  }
 }
 
 function storeHistoryEntry(path, value) {
@@ -638,6 +646,91 @@ function saveAndRender(message) {
     noteSaved("Unable to save: reduce logo file sizes");
   }
   renderReport();
+}
+
+function binaryToBase64(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function inlineReportImages(root) {
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (image) => {
+      try {
+        const source = new URL(image.getAttribute("src"), window.location.href).href;
+        const response = await fetch(source);
+        if (!response.ok) {
+          return;
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        const mimeType = response.headers.get("content-type") || "image/png";
+        image.setAttribute("src", `data:${mimeType};base64,${binaryToBase64(bytes)}`);
+      } catch {
+        // Leave the original source if the browser blocks image inlining.
+      }
+    })
+  );
+}
+
+function wordExportStyles() {
+  return `
+    @page WordSection1 { size: 210mm 297mm; margin: 18mm 19mm 18mm 19mm; }
+    body { font-family: Arial, sans-serif; color: #000; }
+    .print-page { page: WordSection1; page-break-after: always; width: 172mm; min-height: 260mm; margin: 0 auto; }
+    .print-page:last-child { page-break-after: auto; }
+    .cover-page { text-align: center; }
+    .project-title, .report-title-block { font-size: 13pt; font-weight: 700; text-transform: uppercase; }
+    .client-line, .cover-document-reference { font-weight: 700; text-transform: uppercase; }
+    .stakeholders section { margin: 12pt 0; text-align: left; }
+    .stakeholders h3 { margin: 0 0 4pt; font-size: 10pt; text-transform: uppercase; }
+    .party-logo { width: 44mm; height: 25mm; object-fit: contain; }
+    .certification { margin-top: 24pt; border-top: 1px solid #d7dddd; color: #426b8a; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; }
+    .contents-list-heading, .contents-list li { display: grid; grid-template-columns: 16mm 1fr 16mm; gap: 3mm; }
+    .contents-page-number { text-align: right; }
+    .body-page { font-size: 10.5pt; line-height: 1.52; }
+    .report-section { margin-bottom: 18pt; }
+    .report-section h2 { font-size: 12pt; }
+    .report-section p, .formula-detail p { text-align: justify; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+    .report-table th { border-bottom: 1px solid #000; text-align: left; font-weight: 700; }
+    .report-table td, .report-table th { padding: 5pt; vertical-align: top; }
+    .report-table td:last-child, .report-table th:last-child { text-align: right; }
+    .pe-total td { border-top: 1px solid #000; font-weight: 700; }
+    .pe-subtotal td { border-top: 1px solid #777; font-weight: 700; }
+    .page-footer { text-align: right; color: #777; font-size: 8pt; }
+    .pending-value, .pending-cell { visibility: hidden; }
+  `;
+}
+
+async function exportWordDocument() {
+  await renderReport();
+  await paginationReady;
+  const documentClone = reportDocument.cloneNode(true);
+  await inlineReportImages(documentClone);
+  const html = `<!doctype html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+  <head>
+    <meta charset="utf-8">
+    <title>${projectCopyFileStem()}</title>
+    <style>${wordExportStyles()}</style>
+  </head>
+  <body>${documentClone.outerHTML}</body>
+</html>`;
+  const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = `${projectCopyFileStem()}.doc`;
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+  noteSaved("Word document exported");
 }
 
 function reportTable(headers, className = "") {
@@ -847,45 +940,49 @@ function renderPe(body, config) {
   );
   section.append(proposedTable.table);
 
-  section.append(node("p", "pe-table-title", "PE Sedia Ada"));
-  const existingTable = reportTable(["Jenis Premis", "Kuantiti", "PE / Unit", "Sub Jumlah PE"]);
-  appendPeRows(
-    existingTable,
-    summary.existingRows,
-    "[Masukkan baris PE sedia ada, jika berkaitan]",
-    "JUMLAH PE SEDIA ADA",
-    summary.existingSubtotal
-  );
-  section.append(existingTable.table);
+  if (summary.existingPeEnabled) {
+    section.append(node("p", "pe-table-title", "PE Sedia Ada"));
+    const existingTable = reportTable(["Jenis Premis", "Kuantiti", "PE / Unit", "Sub Jumlah PE"]);
+    appendPeRows(
+      existingTable,
+      summary.existingRows,
+      "[Masukkan baris PE sedia ada, jika berkaitan]",
+      "JUMLAH PE SEDIA ADA",
+      summary.existingSubtotal
+    );
+    section.append(existingTable.table);
 
-  section.append(
-    node(
-      "p",
-      "pe-total-note",
-      summary.includeExistingPeInTotal
-        ? "PE sedia ada diambil kira dalam jumlah PE keseluruhan untuk pengiraan rekabentuk awalan."
-        : "PE sedia ada direkodkan sebagai rujukan dan tidak diambil kira dalam jumlah PE keseluruhan."
-    )
-  );
+    section.append(
+      node(
+        "p",
+        "pe-total-note",
+        summary.includeExistingPeInTotal
+          ? "PE sedia ada diambil kira dalam jumlah PE keseluruhan untuk pengiraan rekabentuk awalan."
+          : "PE sedia ada direkodkan sebagai rujukan dan tidak diambil kira dalam jumlah PE keseluruhan."
+      )
+    );
+  }
 
   const summaryTable = reportTable(["Perkara", "PE"], "pe-summary-table");
   const proposedSummary = node("tr");
   reportCell(proposedSummary, "Jumlah PE cadangan");
   reportCell(proposedSummary, summary.rows.length ? formatAmount(summary.subtotal) : "", "PE");
   summaryTable.body.append(proposedSummary);
-  const existingSummary = node("tr");
-  reportCell(
-    existingSummary,
-    summary.includeExistingPeInTotal
-      ? "Jumlah PE sedia ada yang diambil kira"
-      : "Jumlah PE sedia ada yang tidak dijumlahkan"
-  );
-  reportCell(
-    existingSummary,
-    summary.existingRows.length ? formatAmount(summary.existingSubtotal) : "",
-    "PE"
-  );
-  summaryTable.body.append(existingSummary);
+  if (summary.existingPeEnabled) {
+    const existingSummary = node("tr");
+    reportCell(
+      existingSummary,
+      summary.includeExistingPeInTotal
+        ? "Jumlah PE sedia ada yang diambil kira"
+        : "Jumlah PE sedia ada yang tidak dijumlahkan"
+    );
+    reportCell(
+      existingSummary,
+      summary.existingRows.length ? formatAmount(summary.existingSubtotal) : "",
+      "PE"
+    );
+    summaryTable.body.append(existingSummary);
+  }
   if (summary.showAdjustment) {
     const adjustment = node("tr");
     const label = node("td", "", "Penggenapan / pelarasan terkawal");
@@ -1404,6 +1501,9 @@ editor.addEventListener("input", (event) => {
     }
   } else if (target.dataset.simpleField) {
     record[target.dataset.simpleField] = target.value;
+    if (["existingPeEnabled", "includeExistingPeInTotal"].includes(target.dataset.simpleField)) {
+      renderPeEditor();
+    }
   } else if (target.dataset.hydraulicField) {
     record.hydraulic[target.dataset.hydraulicField] = target.value;
   } else if (target.dataset.siteField) {
@@ -1412,7 +1512,15 @@ editor.addEventListener("input", (event) => {
   } else if (target.dataset.designField) {
     record.design[target.dataset.designField] = target.value;
   } else if (target.dataset.array) {
-    record[target.dataset.array][Number(target.dataset.index)][target.dataset.key] = target.value;
+    const row = record[target.dataset.array][Number(target.dataset.index)];
+    row[target.dataset.key] = target.value;
+    if (target.dataset.key === "premisesId") {
+      const option = PE_PREMISES_OPTIONS.find((item) => item.id === target.value);
+      row.premises = option?.premises || "";
+      row.rate = option?.rate || "";
+      row.unit = option?.unit || "";
+      renderPeEditor();
+    }
   } else if (target.dataset.contentSection !== undefined) {
     const section = record.contentsSections[Number(target.dataset.contentSection)];
     section[target.dataset.key] = target.value;
@@ -1600,6 +1708,10 @@ document.querySelector("#exportRecord").addEventListener("click", () => {
   link.click();
   URL.revokeObjectURL(url);
   noteSaved("Record exported");
+});
+
+document.querySelector("#exportWord").addEventListener("click", async () => {
+  await exportWordDocument();
 });
 
 document.querySelector("#importRecord").addEventListener("change", async (event) => {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123f49">
     <title>IWK Report Template | Printable A4 Report Builder</title>
-    <link rel="stylesheet" href="./src/styles.css?v=1.0.7">
+    <link rel="stylesheet" href="./src/styles.css?v=1.0.8">
   </head>
   <body class="auth-locked">
     <section id="passwordGate" class="password-gate screen-only" aria-label="App password">
@@ -28,7 +28,7 @@
           <p class="kicker">Shared web report application</p>
           <h1>IWK <span>Report Template</span></h1>
         </div>
-        <p class="template-credit screen-only">Hafize | Version 1.0.7</p>
+        <p class="template-credit screen-only">Hafize | Version 1.0.8</p>
       </div>
       <div class="header-summary">
         <p>
@@ -39,6 +39,7 @@
         <div class="header-actions" aria-label="Document actions">
           <button class="quiet" id="newRecord" type="button">New blank record</button>
           <button class="quiet" id="exportRecord" type="button">Export record</button>
+          <button class="quiet" id="exportWord" type="button">Export Word</button>
           <label class="quiet file-action" for="importRecord">Import record</label>
           <input id="importRecord" class="sr-only" type="file" accept="application/json,.json">
           <button class="primary" id="printReport" type="button">Print / Save PDF</button>
@@ -275,20 +276,8 @@
             <p class="field-note generated-note">
               The PE basis statement is generated automatically using Table 3-1 of
               MSIG Volume 1 Planning Principle &amp; Tools, 1st Edition Januari 2025.
-              Insert the MSIG unit so the report shows values such as 0.2/pelajar.
+              Select the premises category; PE/unit is inserted automatically in the report.
             </p>
-            <datalist id="msigPeUnits">
-              <option value="pelajar"></option>
-              <option value="orang"></option>
-              <option value="kakitangan"></option>
-              <option value="katil"></option>
-              <option value="bilik"></option>
-              <option value="unit"></option>
-              <option value="rumah"></option>
-              <option value="gerai"></option>
-              <option value="tempat duduk"></option>
-              <option value="m2"></option>
-            </datalist>
             <h3 class="editor-subtitle">PE cadangan projek</h3>
             <div class="table-scroller">
               <table class="editor-table pe-editor">
@@ -296,9 +285,7 @@
                   <tr>
                     <th>Premises</th>
                     <th>Qty</th>
-                    <th>PE value</th>
-                    <th>MSIG unit</th>
-                    <th>Manual subtotal</th>
+                    <th>PE/unit</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -306,30 +293,37 @@
               </table>
             </div>
             <button class="row-action" data-add="peRows" type="button">Add PE row</button>
-            <h3 class="editor-subtitle">PE sedia ada</h3>
-            <div class="table-scroller">
-              <table class="editor-table pe-editor">
-                <thead>
-                  <tr>
-                    <th>Premises</th>
-                    <th>Qty</th>
-                    <th>PE value</th>
-                    <th>MSIG unit</th>
-                    <th>Manual subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="existingPeEditor"></tbody>
-              </table>
-            </div>
-            <button class="row-action" data-add="existingPeRows" type="button">Add existing PE row</button>
             <label class="short-input">
-              Jumlahkan PE sedia ada dalam total?
-              <select data-simple-field="includeExistingPeInTotal">
+              Masukkan PE sedia ada?
+              <select data-simple-field="existingPeEnabled">
                 <option value="no">Tidak</option>
                 <option value="yes">Ya</option>
               </select>
             </label>
+            <div id="existingPeFields">
+              <h3 class="editor-subtitle">PE sedia ada</h3>
+              <div class="table-scroller">
+                <table class="editor-table pe-editor">
+                  <thead>
+                    <tr>
+                      <th>Premises</th>
+                      <th>Qty</th>
+                      <th>PE/unit</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="existingPeEditor"></tbody>
+                </table>
+              </div>
+              <button class="row-action" data-add="existingPeRows" type="button">Add existing PE row</button>
+              <label class="short-input">
+                Jumlahkan PE sedia ada dalam total?
+                <select data-simple-field="includeExistingPeInTotal">
+                  <option value="no">Tidak</option>
+                  <option value="yes">Ya</option>
+                </select>
+              </label>
+            </div>
             <label class="short-input">
               Rounding / controlled adjustment (PE)
               <input data-simple-field="peAdjustment" type="number" step="any" placeholder="0">
@@ -397,7 +391,7 @@
       </section>
     </main>
 
-    <script src="./src/report-model.js?v=1.0.7"></script>
-    <script src="./src/app.js?v=1.0.7"></script>
+    <script src="./src/report-model.js?v=1.0.8"></script>
+    <script src="./src/app.js?v=1.0.8"></script>
   </body>
 </html>

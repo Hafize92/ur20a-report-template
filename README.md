@@ -43,5 +43,5 @@ Localhost is only for development. Users should use the GitHub Pages HTTPS link.
 
 ## Version
 
-`Hafize | Version 1.0.7` is visible in the template interface only and is excluded
+`Hafize | Version 1.0.8` is visible in the template interface only and is excluded
 from the printed PDF.

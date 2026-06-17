@@ -6,6 +6,7 @@ import "../src/report-model.js";
 const {
   APP_META,
   HYDRAULIC_FORMULAS,
+  PE_PREMISES_OPTIONS,
   REPORT_CODE_OPTIONS,
   calculatePreliminaryDesign,
   createBlankRecord,
@@ -36,11 +37,19 @@ test("a blank template retains formal UR20A report defaults", () => {
   assert.equal(record.contentsSections.find((section) => section.id === "6.0").enabled, "yes");
   assert.equal(record.hydraulic.formulaId, "");
   assert.equal(APP_META.appName, "IWK Report Template");
-  assert.equal(APP_META.credit, "Hafize | Version 1.0.7");
+  assert.equal(APP_META.credit, "Hafize | Version 1.0.8");
   assert.equal(APP_META.authKey, "ur20a-report-template-auth-v1");
+  assert.equal(record.peRows[0].premisesId, "");
   assert.equal(record.peRows[0].unit, "");
+  assert.equal(record.existingPeEnabled, "no");
   assert.equal(record.existingPeRows[0].unit, "");
   assert.equal(record.includeExistingPeInTotal, "no");
+  assert.deepEqual(PE_PREMISES_OPTIONS[0], {
+    id: "sekolah-pelajar",
+    premises: "Sekolah",
+    rate: "0.2",
+    unit: "pelajar"
+  });
   assert.deepEqual(REPORT_CODE_OPTIONS, [
     "UR20A",
     "SWA-P",
@@ -84,12 +93,13 @@ test("contents sections are renumbered automatically after exclusions", () => {
 test("PE summary combines automatic line products with a rounding adjustment", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premises: "Blok baharu", quantity: "360", rate: "0.2", unit: "pelajar", subtotalOverride: "" }
+    { premisesId: "sekolah-pelajar", quantity: "360" }
   ];
   record.peAdjustment = "8";
 
   const result = summarisePe(record);
   assert.equal(result.rows[0].subtotal, 72);
+  assert.equal(result.rows[0].premises, "Sekolah");
   assert.equal(result.rows[0].unit, "pelajar");
   assert.equal(result.total, 80);
 });
@@ -97,10 +107,11 @@ test("PE summary combines automatic line products with a rounding adjustment", (
 test("existing PE is calculated but only included in total when selected", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premises: "Blok baharu", quantity: "100", rate: "0.2", unit: "pelajar", subtotalOverride: "" }
+    { premisesId: "sekolah-pelajar", quantity: "100" }
   ];
+  record.existingPeEnabled = "yes";
   record.existingPeRows = [
-    { premises: "Bangunan sedia ada", quantity: "50", rate: "0.2", unit: "pelajar", subtotalOverride: "" }
+    { premisesId: "sekolah-pelajar", quantity: "50" }
   ];
 
   const excluded = summarisePe(record);
@@ -115,21 +126,21 @@ test("existing PE is calculated but only included in total when selected", () =>
   assert.equal(included.total, 30);
 });
 
-test("an explicitly entered subtotal is retained as the controlled manual value", () => {
+test("PE subtotal is always calculated from quantity and selected MSIG rate", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premises: "Kegunaan khas", quantity: "12", rate: "2", subtotalOverride: "31" }
+    { premisesId: "sekolah-pelajar", quantity: "12", rate: "9" }
   ];
 
   const result = summarisePe(record);
-  assert.equal(result.rows[0].subtotal, 31);
-  assert.equal(result.rows[0].manuallyOverridden, true);
+  assert.equal(result.rows[0].rate, "0.2");
+  assert.ok(Math.abs(result.rows[0].subtotal - 2.4) < 0.000001);
 });
 
 test("preliminary design is calculated automatically from total PE and the fixed exponent", () => {
   const record = createBlankRecord();
   record.peRows = [
-    { premises: "Blok baharu", quantity: "360", rate: "0.2", subtotalOverride: "" }
+    { premisesId: "sekolah-pelajar", quantity: "360" }
   ];
   record.peAdjustment = "8";
 
@@ -150,8 +161,9 @@ test("import normalisation preserves expected fields and drops unrelated values"
       { item: "Jenis paip", value: "VC", unit: "" },
       { item: "Faktor aliran puncak (peak flow)", value: "lama", unit: "" }
     ],
-    peRows: [{ premises: "Bangunan", quantity: 10, rate: 0.2 }],
-    existingPeRows: [{ premises: "Asrama sedia ada", quantity: 20, rate: 1, unit: "katil" }],
+    peRows: [{ premises: "Sekolah", quantity: 10, rate: 9 }],
+    existingPeEnabled: "yes",
+    existingPeRows: [{ premises: "Sekolah", quantity: 20, rate: 1, unit: "katil" }],
     includeExistingPeInTotal: "yes",
     unknown: "ignore"
   });
@@ -164,8 +176,11 @@ test("import normalisation preserves expected fields and drops unrelated values"
   assert.equal(imported.criteria.length, 1);
   assert.equal(imported.criteria[0].item, "Jenis paip");
   assert.equal(imported.peRows[0].quantity, "10");
-  assert.equal(imported.peRows[0].unit, "");
-  assert.equal(imported.existingPeRows[0].unit, "katil");
+  assert.equal(imported.peRows[0].premisesId, "sekolah-pelajar");
+  assert.equal(imported.peRows[0].rate, "0.2");
+  assert.equal(imported.peRows[0].unit, "pelajar");
+  assert.equal(imported.existingPeEnabled, "yes");
+  assert.equal(imported.existingPeRows[0].unit, "pelajar");
   assert.equal(imported.includeExistingPeInTotal, "yes");
   assert.equal(imported.design.peakFactorCoefficient, "3.4");
 });
@@ -219,7 +234,7 @@ test("template credit is labelled screen-only and suppressed in print styling", 
   const css = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
   const printCss = css.slice(css.indexOf("@media print"));
 
-  assert.match(html, /Hafize \| Version 1\.0\.7/);
+  assert.match(html, /Hafize \| Version 1\.0\.8/);
   assert.match(html, /template-credit screen-only/);
   assert.equal(
     html.includes("is visible in the template interface only and will not be printed in the PDF"),
@@ -239,11 +254,11 @@ test("print layout protects headings and paragraphs from orphaned page breaks", 
 
 test("browser scripts remain compatible with static web hosting under a nested route", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.7"></script>');
-  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.7"></script>');
+  const modelPosition = html.indexOf('<script src="./src/report-model.js?v=1.0.8"></script>');
+  const appPosition = html.indexOf('<script src="./src/app.js?v=1.0.8"></script>');
 
   assert.equal(html.includes('type="module"'), false);
-  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.7">/);
+  assert.match(html, /<link rel="stylesheet" href="\.\/src\/styles\.css\?v=1\.0\.8">/);
   assert.ok(modelPosition >= 0);
   assert.ok(appPosition > modelPosition);
 });
@@ -334,9 +349,13 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(html, /id="contentsSectionsEditor"/);
   assert.match(html, /id="existingPeEditor"/);
   assert.match(html, /data-add="existingPeRows"/);
+  assert.match(html, /data-simple-field="existingPeEnabled"/);
   assert.match(html, /data-simple-field="includeExistingPeInTotal"/);
-  assert.match(html, /id="msigPeUnits"/);
-  assert.match(html, /value="pelajar"/);
+  assert.match(html, /id="existingPeFields"/);
+  assert.match(html, /id="exportWord"/);
+  assert.equal(html.includes("Manual subtotal"), false);
+  assert.equal(html.includes("MSIG unit"), false);
+  assert.equal(html.includes('id="msigPeUnits"'), false);
   assert.equal(html.includes('data-field="contentsSections.number"'), false);
   assert.match(html, /Rujukan IWK/);
   assert.match(html, /Submission ke-/);
@@ -374,9 +393,17 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(app, /APP_PASSWORD = "pendksi1"/);
   assert.match(app, /installPasswordGate/);
   assert.match(app, /sessionStorage\.setItem\(APP_META\.authKey, "unlocked"\)/);
+  assert.match(app, /PE_PREMISES_OPTIONS/);
+  assert.match(app, /Select MSIG premise/);
   assert.match(app, /peRateLabel/);
+  assert.match(app, /existingPeEnabled/);
+  assert.match(app, /existingFields\.hidden/);
   assert.match(app, /existingRows/);
   assert.match(app, /PE sedia ada diambil kira/);
+  assert.match(app, /exportWordDocument/);
+  assert.match(app, /application\/msword/);
+  assert.match(app, /\.doc`/);
+  assert.match(app, /inlineReportImages/);
   assert.match(app, /formulaChoice\.addEventListener\("change"/);
   assert.match(app, /Tapak cadangan projek ini terletak di atas/);
   assert.match(app, /sebahagian/);
@@ -426,6 +453,7 @@ test("revised form provides project-copy storage and hydraulic controls", async 
   assert.match(css, /\.password-gate\s*\{/);
   assert.match(css, /\.pe-table-title\s*\{/);
   assert.match(css, /\.pe-subtotal td\s*\{/);
+  assert.match(css, /\.readonly-cell\s*\{/);
   assert.match(css, /\.print-page\s*\{[\s\S]*?height:\s*297mm/);
   assert.match(css, /@page\s*\{[\s\S]*?margin:\s*0/);
   assert.match(css, /@media print[\s\S]*?\.print-page\s*\{[\s\S]*?width:\s*210mm[\s\S]*?height:\s*297mm/);

@@ -2,11 +2,12 @@
 const APP_META = Object.freeze({
   appName: "IWK Report Template",
   documentName: "Laporan Kejuruteraan Sistem Pembetungan",
-  credit: "Hafize | Version 1.0.6",
+  credit: "Hafize | Version 1.0.7",
   storageKey: "swa-c-report-template-draft-v1",
   historyKey: "swa-c-report-template-history-v1",
   projectLibraryKey: "ur20a-report-template-project-library-v1",
-  activeProjectKey: "ur20a-report-template-active-project-v1"
+  activeProjectKey: "ur20a-report-template-active-project-v1",
+  authKey: "ur20a-report-template-auth-v1"
 });
 
 const REPORT_SECTIONS = Object.freeze([
@@ -181,7 +182,9 @@ function createBlankRecord() {
     },
     criteria: defaultCriteria.map(([item, value, unit]) => ({ item, value, unit })),
     peBasis: "",
-    peRows: [{ premises: "", quantity: "", rate: "", subtotalOverride: "" }],
+    peRows: [{ premises: "", quantity: "", rate: "", unit: "", subtotalOverride: "" }],
+    existingPeRows: [{ premises: "", quantity: "", rate: "", unit: "", subtotalOverride: "" }],
+    includeExistingPeInTotal: "no",
     peAdjustment: "",
     contentsSections: defaultContentsSections.map((section) => ({ ...section })),
     hydraulic: {
@@ -300,8 +303,18 @@ function normaliseRecord(value) {
       "premises",
       "quantity",
       "rate",
+      "unit",
       "subtotalOverride"
     ]),
+    existingPeRows: normaliseRows(incoming.existingPeRows, defaults.existingPeRows, [
+      "premises",
+      "quantity",
+      "rate",
+      "unit",
+      "subtotalOverride"
+    ]),
+    includeExistingPeInTotal:
+      text(incoming.includeExistingPeInTotal) === "yes" ? "yes" : defaults.includeExistingPeInTotal,
     peAdjustment: text(incoming.peAdjustment),
     contentsSections: normaliseContentsSections(incoming.contentsSections),
     hydraulic: {
@@ -333,28 +346,45 @@ function getPath(record, path) {
 
 function summarisePe(value) {
   const record = normaliseRecord(value);
-  const rows = record.peRows
-    .map((row) => {
-      const quantity = numeric(row.quantity);
-      const rate = numeric(row.rate);
-      const override = numeric(row.subtotalOverride);
-      const subtotal = override ?? (quantity !== null && rate !== null ? quantity * rate : null);
-      return { ...row, subtotal, manuallyOverridden: override !== null };
-    })
-    .filter(
-      (row) =>
-        row.premises.trim() || row.quantity.trim() || row.rate.trim() || row.subtotal !== null
-    );
+  const summariseRows = (rows) =>
+    rows
+      .map((row) => {
+        const quantity = numeric(row.quantity);
+        const rate = numeric(row.rate);
+        const override = numeric(row.subtotalOverride);
+        const subtotal = override ?? (quantity !== null && rate !== null ? quantity * rate : null);
+        return { ...row, subtotal, manuallyOverridden: override !== null };
+      })
+      .filter(
+        (row) =>
+          row.premises.trim() ||
+          row.quantity.trim() ||
+          row.rate.trim() ||
+          row.unit.trim() ||
+          row.subtotal !== null
+      );
+  const rows = summariseRows(record.peRows);
+  const existingRows = summariseRows(record.existingPeRows);
   const subtotal = rows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
+  const existingSubtotal = existingRows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
+  const includeExistingPeInTotal = record.includeExistingPeInTotal === "yes";
+  const includedExistingSubtotal = includeExistingPeInTotal ? existingSubtotal : 0;
   const adjustment = numeric(record.peAdjustment);
 
   return {
     rows,
+    existingRows,
     subtotal,
+    existingSubtotal,
+    includeExistingPeInTotal,
+    includedExistingSubtotal,
     adjustment: adjustment ?? 0,
     showAdjustment: adjustment !== null,
-    total: subtotal + (adjustment ?? 0),
-    hasCalculatedValue: rows.some((row) => row.subtotal !== null) || adjustment !== null
+    total: subtotal + includedExistingSubtotal + (adjustment ?? 0),
+    hasCalculatedValue:
+      rows.some((row) => row.subtotal !== null) ||
+      (includeExistingPeInTotal && existingRows.some((row) => row.subtotal !== null)) ||
+      adjustment !== null
   };
 }
 

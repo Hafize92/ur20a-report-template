@@ -26,6 +26,12 @@ const contentsSectionsEditor = document.querySelector("#contentsSectionsEditor")
 const iwkReferenceField = document.querySelector("#iwkReferenceField");
 const siteIntroductionFields = document.querySelector("#siteIntroductionFields");
 const existingSchoolIntroField = document.querySelector("#existingSchoolIntroField");
+const passwordGate = document.querySelector("#passwordGate");
+const passwordForm = document.querySelector("#passwordForm");
+const passwordInput = document.querySelector("#appPassword");
+const passwordError = document.querySelector("#passwordError");
+
+const APP_PASSWORD = "pendksi1";
 
 const HYDRAULIC_SOURCE_LABELS = Object.freeze({
   excel: "Excel sheet formula",
@@ -81,6 +87,7 @@ const PE_BLANK_ROW = Object.freeze({
   premises: "",
   quantity: "",
   rate: "",
+  unit: "",
   subtotalOverride: ""
 });
 
@@ -92,6 +99,51 @@ let resizeRenderTimer = 0;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function isAppUnlocked() {
+  try {
+    return sessionStorage.getItem(APP_META.authKey) === "unlocked";
+  } catch {
+    return false;
+  }
+}
+
+function unlockApp() {
+  document.body.classList.remove("auth-locked");
+  if (passwordInput) {
+    passwordInput.value = "";
+  }
+  if (passwordError) {
+    passwordError.textContent = "";
+  }
+}
+
+function installPasswordGate() {
+  if (!passwordForm) {
+    document.body.classList.remove("auth-locked");
+    return;
+  }
+  if (isAppUnlocked()) {
+    unlockApp();
+  }
+  passwordForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if ((passwordInput?.value || "") === APP_PASSWORD) {
+      try {
+        sessionStorage.setItem(APP_META.authKey, "unlocked");
+      } catch {
+        // Continue without persistence when storage is unavailable.
+      }
+      unlockApp();
+      return;
+    }
+    if (passwordError) {
+      passwordError.textContent = "Password tidak tepat.";
+    }
+    passwordInput?.focus();
+    passwordInput?.select();
+  });
 }
 
 function loadRecord() {
@@ -420,35 +472,45 @@ function renderContentsSectionsEditor() {
   });
 }
 
-function renderPeEditor() {
-  const body = document.querySelector("#peEditor");
+function renderPeTableEditor(bodyId, arrayName) {
+  const body = document.querySelector(`#${bodyId}`);
   body.replaceChildren();
   const fields = [
     { key: "premises" },
     { key: "quantity", type: "number" },
     { key: "rate", type: "number" },
+    { key: "unit" },
     { key: "subtotalOverride", type: "number" }
   ];
 
-  record.peRows.forEach((rowData, index) => {
+  record[arrayName].forEach((rowData, index) => {
     const row = node("tr");
     fields.forEach((field) => {
       const cell = node("td");
       const input = document.createElement("input");
-      input.dataset.array = "peRows";
+      input.dataset.array = arrayName;
       input.dataset.index = String(index);
       input.dataset.key = field.key;
       input.type = field.type || "text";
       input.step = field.type === "number" ? "any" : "";
+      if (field.key === "unit") {
+        input.setAttribute("list", "msigPeUnits");
+        input.placeholder = "pelajar";
+      }
       input.value = rowData[field.key] || "";
       cell.append(input);
       row.append(cell);
     });
     const actionCell = node("td");
-    actionCell.append(removeButton("peRows", index));
+    actionCell.append(removeButton(arrayName, index));
     row.append(actionCell);
     body.append(row);
   });
+}
+
+function renderPeEditor() {
+  renderPeTableEditor("peEditor", "peRows");
+  renderPeTableEditor("existingPeEditor", "existingPeRows");
 }
 
 function storeHistoryEntry(path, value) {
@@ -736,43 +798,107 @@ function renderCriteria(body, config) {
   body.append(section);
 }
 
-function renderPe(body, config) {
-  const summary = summarisePe(record);
-  const section = createConfiguredSection(config, "4.0", "PENGIRAAN PENDUDUK SETARA (PE)");
-  section.append(node("p", "", STANDARD_PE_BASIS));
-  const table = reportTable(["Jenis Premis", "Kuantiti", "PE / Unit", "Sub Jumlah PE"]);
+function peRateLabel(entry) {
+  const rate = String(entry.rate || "").trim();
+  const unit = String(entry.unit || "").trim();
+  if (!rate && !unit) {
+    return "";
+  }
+  return unit ? `${rate || "[PE]"}/${unit}` : rate;
+}
 
-  if (!summary.rows.length) {
+function appendPeRows(table, rows, blankText, subtotalLabel, subtotalValue) {
+  if (!rows.length) {
     const blank = node("tr");
-    const cell = node("td", "pending-cell", "[Masukkan baris pengiraan PE]");
+    const cell = node("td", "pending-cell", blankText);
     cell.colSpan = 4;
     blank.append(cell);
     table.body.append(blank);
   } else {
-    summary.rows.forEach((entry) => {
+    rows.forEach((entry) => {
       const row = node("tr");
       reportCell(row, entry.premises, "Premis");
       reportCell(row, entry.quantity);
-      reportCell(row, entry.rate);
+      reportCell(row, peRateLabel(entry));
       reportCell(row, entry.subtotal === null ? "" : formatAmount(entry.subtotal), "PE");
       table.body.append(row);
     });
   }
+  const subtotal = node("tr", "pe-subtotal");
+  const label = node("td", "", subtotalLabel);
+  label.colSpan = 3;
+  subtotal.append(label);
+  reportCell(subtotal, rows.length ? formatAmount(subtotalValue) : "", "PE");
+  table.body.append(subtotal);
+}
+
+function renderPe(body, config) {
+  const summary = summarisePe(record);
+  const section = createConfiguredSection(config, "4.0", "PENGIRAAN PENDUDUK SETARA (PE)");
+  section.append(node("p", "", STANDARD_PE_BASIS));
+  section.append(node("p", "pe-table-title", "PE Cadangan Projek"));
+  const proposedTable = reportTable(["Jenis Premis", "Kuantiti", "PE / Unit", "Sub Jumlah PE"]);
+  appendPeRows(
+    proposedTable,
+    summary.rows,
+    "[Masukkan baris pengiraan PE cadangan]",
+    "JUMLAH PE CADANGAN",
+    summary.subtotal
+  );
+  section.append(proposedTable.table);
+
+  section.append(node("p", "pe-table-title", "PE Sedia Ada"));
+  const existingTable = reportTable(["Jenis Premis", "Kuantiti", "PE / Unit", "Sub Jumlah PE"]);
+  appendPeRows(
+    existingTable,
+    summary.existingRows,
+    "[Masukkan baris PE sedia ada, jika berkaitan]",
+    "JUMLAH PE SEDIA ADA",
+    summary.existingSubtotal
+  );
+  section.append(existingTable.table);
+
+  section.append(
+    node(
+      "p",
+      "pe-total-note",
+      summary.includeExistingPeInTotal
+        ? "PE sedia ada diambil kira dalam jumlah PE keseluruhan untuk pengiraan rekabentuk awalan."
+        : "PE sedia ada direkodkan sebagai rujukan dan tidak diambil kira dalam jumlah PE keseluruhan."
+    )
+  );
+
+  const summaryTable = reportTable(["Perkara", "PE"], "pe-summary-table");
+  const proposedSummary = node("tr");
+  reportCell(proposedSummary, "Jumlah PE cadangan");
+  reportCell(proposedSummary, summary.rows.length ? formatAmount(summary.subtotal) : "", "PE");
+  summaryTable.body.append(proposedSummary);
+  const existingSummary = node("tr");
+  reportCell(
+    existingSummary,
+    summary.includeExistingPeInTotal
+      ? "Jumlah PE sedia ada yang diambil kira"
+      : "Jumlah PE sedia ada yang tidak dijumlahkan"
+  );
+  reportCell(
+    existingSummary,
+    summary.existingRows.length ? formatAmount(summary.existingSubtotal) : "",
+    "PE"
+  );
+  summaryTable.body.append(existingSummary);
   if (summary.showAdjustment) {
     const adjustment = node("tr");
     const label = node("td", "", "Penggenapan / pelarasan terkawal");
-    label.colSpan = 3;
     adjustment.append(label);
     reportCell(adjustment, formatAmount(summary.adjustment));
-    table.body.append(adjustment);
+    summaryTable.body.append(adjustment);
   }
   const total = node("tr", "pe-total");
   const totalLabel = node("td", "", "JUMLAH PE");
-  totalLabel.colSpan = 3;
   total.append(totalLabel);
   reportCell(total, summary.hasCalculatedValue ? formatAmount(summary.total) : "", "Jumlah PE");
-  table.body.append(total);
-  section.append(table.table);
+  summaryTable.body.append(total);
+  section.append(summaryTable.table);
   body.append(section);
 }
 
@@ -1325,7 +1451,9 @@ editor.addEventListener("click", (event) => {
   const add = event.target.closest("[data-add]");
   if (add) {
     const arrayName = add.dataset.add;
-    const blank = arrayName === "peRows" ? PE_BLANK_ROW : CARD_DEFINITIONS[arrayName].blank;
+    const blank = ["peRows", "existingPeRows"].includes(arrayName)
+      ? PE_BLANK_ROW
+      : CARD_DEFINITIONS[arrayName].blank;
     record[arrayName].push(clone(blank));
     renderCardEditors();
     renderPeEditor();
@@ -1337,7 +1465,9 @@ editor.addEventListener("click", (event) => {
     const arrayName = remove.dataset.remove;
     record[arrayName].splice(Number(remove.dataset.index), 1);
     if (!record[arrayName].length) {
-      const blank = arrayName === "peRows" ? PE_BLANK_ROW : CARD_DEFINITIONS[arrayName].blank;
+      const blank = ["peRows", "existingPeRows"].includes(arrayName)
+        ? PE_BLANK_ROW
+        : CARD_DEFINITIONS[arrayName].blank;
       record[arrayName].push(clone(blank));
     }
     renderCardEditors();
@@ -1518,6 +1648,7 @@ window.addEventListener("resize", () => {
   resizeRenderTimer = window.setTimeout(renderReport, 160);
 });
 
+installPasswordGate();
 installDetailsFooterControls();
 populateFields();
 renderReport();

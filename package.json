@@ -1,6 +1,6 @@
 {
   "name": "ur20a-report-template",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
   "description": "Static shared-link IWK sewerage engineering report template with independent browser records and printable A4 output.",

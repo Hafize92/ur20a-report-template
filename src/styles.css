@@ -28,6 +28,57 @@ body {
   line-height: 1.45;
 }
 
+body.auth-locked {
+  background: linear-gradient(135deg, #0f4e58, #163b42);
+}
+
+body.auth-locked .app-header,
+body.auth-locked .studio {
+  display: none;
+}
+
+.password-gate {
+  display: none;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+}
+
+body.auth-locked .password-gate {
+  display: grid;
+}
+
+.password-panel {
+  width: min(420px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+}
+
+.password-panel h1 {
+  margin: 2px 0 10px;
+  color: #143f49;
+}
+
+.password-panel h1 span {
+  color: var(--gold);
+}
+
+.password-panel p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.password-error {
+  min-height: 1.2em;
+  margin: 10px 0 0 !important;
+  color: #a43232 !important;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .app-header {
   padding: 27px max(calc((100% - 1500px) / 2), 30px) 30px;
   color: #f5faf9;
@@ -412,6 +463,12 @@ select:focus {
 
 .short-input {
   max-width: 232px;
+}
+
+.editor-subtitle {
+  margin: 16px 0 8px;
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
 .selected-methods {
@@ -849,6 +906,26 @@ select:focus {
 .report-table td:last-child,
 .report-table th:last-child {
   text-align: right;
+}
+
+.pe-table-title {
+  margin: 4mm 0 1mm !important;
+  font-weight: 700;
+  text-align: left !important;
+}
+
+.pe-subtotal td {
+  border-top: 1px solid #777;
+  font-weight: 700;
+}
+
+.pe-total-note {
+  margin-top: 3mm !important;
+  font-size: 9.5pt;
+}
+
+.pe-summary-table {
+  max-width: 125mm;
 }
 
 .pe-total td {
